@@ -9,13 +9,35 @@ https://9gotstory.github.io/s2health-pa/
 ## Architecture
 
 - Frontend: GitHub Pages
-- API: Fedora `pa-dashboard-api` (public HTTPS endpoint will be configured separately)
+- API: Fedora `pa-dashboard-api`
 - Database: PostgreSQL on Fedora
+- Public API ingress: Tailscale Funnel over HTTPS
 - Monitoring: Prometheus / Grafana / private exporter on Fedora
+
+## Runtime API configuration
+
+The Fedora API URL is **not hardcoded** in application source.
+
+GitHub Actions generates `site/config.js` at deployment time from the repository
+Actions variable:
+
+`PUBLIC_API_BASE_URL`
+
+The public frontend uses:
+
+`/api/v1/health/ready`
+
+to verify that the Fedora API and database are ready.
+
+For browser access, the Fedora API ingress must allow the origin:
+
+`https://9gotstory.github.io`
+
+No credentials belong in `PUBLIC_API_BASE_URL`; it is a public endpoint value, not a secret.
 
 ## Boundaries
 
 - This repository does **not** replace or modify `9GotStory/pa-dashboard`.
 - Do not commit credentials, database connection strings, Tailscale auth keys, tokens, or other secrets.
 - Environment-specific API endpoints must not be hardcoded into application source.
-- The current landing page is intentionally API-independent until the Fedora public API endpoint is finalized.
+- The existing `pa-dashboard` GitHub Pages + Google Apps Script deployment remains independent.

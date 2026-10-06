@@ -28,6 +28,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run dashboard unit tests
+        run: node --test test/*.test.js
+
+      - name: Validate dashboard module syntax
+        run: node --check site/js/*.js
+
+      - name: Enforce DOM injection boundary
+        run: |
+          if grep -R -n -E '\\.(innerHTML|outerHTML)[[:space:]]*=' site/js; then
+            echo "Unsafe HTML assignment found"
+            exit 1
+          fi
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

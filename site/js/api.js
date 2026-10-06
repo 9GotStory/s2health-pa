@@ -39,7 +39,13 @@ export function readRuntimeConfig(globalObject = window) {
     throw new Error("api_base_url_must_use_https");
   }
 
-  if (url.username || url.password || url.search || url.hash) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.pathname !== "/" && url.pathname !== "")
+  ) {
     throw new Error("api_base_url_must_be_origin_only");
   }
 

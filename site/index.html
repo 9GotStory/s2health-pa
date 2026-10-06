@@ -56,18 +56,34 @@
     .status {
       margin-top: 30px;
       padding: 18px 20px;
-      border: 1px solid #bae6fd;
+      border: 1px solid #cbd5e1;
       border-radius: 16px;
+      background: #f8fafc;
+    }
+    .status[data-state="ready"] {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+    }
+    .status[data-state="checking"] {
+      border-color: #bae6fd;
       background: #f0f9ff;
+    }
+    .status[data-state="error"] {
+      border-color: #fecaca;
+      background: #fef2f2;
     }
     .status strong {
       display: block;
       margin-bottom: 5px;
-      color: #075985;
+      color: #0f172a;
     }
     .status span {
       color: #475569;
       line-height: 1.6;
+    }
+    code {
+      overflow-wrap: anywhere;
+      font-size: .86em;
     }
     footer {
       margin-top: 30px;
@@ -75,6 +91,7 @@
       font-size: .85rem;
     }
   </style>
+  <script src="./config.js"></script>
 </head>
 <body>
   <main>
@@ -82,20 +99,75 @@
     <h1>S2Health PA</h1>
     <p class="lead">
       ระบบแสดงผลข้อมูล PA สำหรับเครือข่ายสุขภาพอำเภอสอง
-      เวอร์ชันใหม่ที่เตรียมเชื่อมต่อกับ API และฐานข้อมูลบน Fedora
+      โดยใช้ GitHub Pages เป็น public frontend และใช้ API/ฐานข้อมูลบน Fedora
     </p>
 
-    <div class="status" role="status">
-      <strong>GitHub Pages พร้อมใช้งาน</strong>
-      <span>
-        ขณะนี้หน้าเว็บแยกจาก PA Dashboard เดิมเรียบร้อยแล้ว
-        และยังไม่ได้เปิดเผย API endpoint หรือข้อมูลลับใด ๆ
-      </span>
+    <div class="status" id="backend-status" data-state="idle" role="status" aria-live="polite">
+      <strong id="backend-title">กำลังตรวจสอบการเชื่อมต่อ</strong>
+      <span id="backend-detail">กำลังอ่าน runtime configuration...</span>
     </div>
 
     <footer>
-      s2health-pa · Public frontend baseline
+      s2health-pa · Fedora-backed frontend
     </footer>
   </main>
+
+  <script>
+    (() => {
+      const status = document.getElementById('backend-status');
+      const title = document.getElementById('backend-title');
+      const detail = document.getElementById('backend-detail');
+      const config = window.S2HEALTH_CONFIG || {};
+      const apiBaseUrl = typeof config.apiBaseUrl === 'string'
+        ? config.apiBaseUrl.replace(/\/+$/, '')
+        : '';
+      const readinessPath = config.readinessPath || '/api/v1/health/ready';
+
+      if (!apiBaseUrl) {
+        status.dataset.state = 'idle';
+        title.textContent = 'GitHub Pages พร้อมใช้งาน';
+        detail.textContent = 'ยังไม่ได้กำหนด public API endpoint ของ Fedora';
+        return;
+      }
+
+      status.dataset.state = 'checking';
+      title.textContent = 'กำลังตรวจสอบ Fedora API';
+      detail.textContent = 'ตรวจสอบ readiness ผ่าน public HTTPS endpoint';
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      fetch(apiBaseUrl + readinessPath, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+          }
+
+          const payload = await response.json();
+          if (payload?.status !== 'ready') {
+            throw new Error('unexpected readiness response');
+          }
+
+          status.dataset.state = 'ready';
+          title.textContent = 'Fedora API พร้อมใช้งาน';
+          detail.textContent = 'เชื่อมต่อ API และฐานข้อมูลสำเร็จ';
+        })
+        .catch((error) => {
+          status.dataset.state = 'error';
+          title.textContent = 'ยังเชื่อมต่อ Fedora API ไม่สำเร็จ';
+          detail.textContent = error?.name === 'AbortError'
+            ? 'การตรวจสอบ API หมดเวลา'
+            : 'ตรวจสอบ public endpoint หรือ CORS configuration';
+        })
+        .finally(() => clearTimeout(timeout));
+    })();
+  </script>
 </body>
 </html>

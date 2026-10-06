@@ -21,6 +21,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
 
     steps:
       - name: Checkout
@@ -28,6 +30,25 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      - name: Generate runtime configuration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          api_base_url = os.environ.get("PUBLIC_API_BASE_URL", "").strip().rstrip("/")
+          config = {
+              "apiBaseUrl": api_base_url,
+              "readinessPath": "/api/v1/health/ready",
+          }
+          payload = "window.S2HEALTH_CONFIG = " + json.dumps(
+              config, ensure_ascii=False, separators=(",", ":")
+          ) + ";\n"
+          Path("site/config.js").write_text(payload, encoding="utf-8")
+          PY
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3

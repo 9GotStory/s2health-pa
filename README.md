@@ -42,20 +42,15 @@ No credentials belong in `PUBLIC_API_BASE_URL`; it is a public endpoint value, n
 - Environment-specific API endpoints must not be hardcoded into application source.
 - The existing `pa-dashboard` GitHub Pages + Google Apps Script deployment remains independent.
 
+## Public API ingress
 
-## Public API gateway
+The Fedora `pa-dashboard-api` is the public read API for this frontend.
 
-The repository includes `gateway/gateway.mjs`, a small Node.js reverse proxy intended
-to run on Fedora beside the private API.
+Host deployment keeps the API on the private application network and publishes
+only `127.0.0.1:13001 -> 3001` for host-local ingress. Tailscale Funnel is
+configured separately to proxy public HTTPS traffic to that loopback endpoint.
 
-It exposes only these upstream routes:
+Browser CORS is configured on the API through host-only `PA_CORS_ORIGINS`;
+the GitHub Pages origin is `https://9gotstory.github.io`.
 
-- `GET /api/v1/health/ready`
-- `GET /api/v1/kpis`
-- `GET /api/v1/facilities`
-- `GET /api/v1/tambons`
-- `GET /api/v1/dashboard`
-
-The gateway does not expose `/api/v1/sync-status` or arbitrary API paths. It accepts
-configuration through environment variables (`UPSTREAM_ORIGIN`, `ALLOWED_ORIGIN`,
-`GATEWAY_HOST`, `GATEWAY_PORT`) so host-specific addresses remain outside source.
+No extra application gateway is required.

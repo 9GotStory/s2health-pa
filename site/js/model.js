@@ -1,3 +1,5 @@
+export const DEFAULT_TARGET = 80;
+
 function guardFinite(value, what) {
   if (!Number.isFinite(value)) {
     throw new Error(`${what} overflowed to a non-finite number`);
@@ -231,13 +233,26 @@ export function getAggregate(summary, facilityCode = "") {
     };
   }
 
-  return (
+  const aggregate =
     summary.breakdown[facilityCode] || {
       target: 0,
       result: 0,
       percentage: 0,
-    }
-  );
+    };
+
+  if (summary.totalTarget === 0) {
+    return {
+      target: 0,
+      result: aggregate.result,
+      percentage: aggregate.result > 0 ? 100 : 0,
+    };
+  }
+
+  return aggregate;
+}
+
+export function resolveTarget(summary) {
+  return summary.targetValue || DEFAULT_TARGET;
 }
 
 export function getDashboardStats(summaries, facilityCode = "") {
@@ -246,8 +261,7 @@ export function getDashboardStats(summaries, facilityCode = "") {
 
   for (const summary of summaries) {
     const aggregate = getAggregate(summary, facilityCode);
-    const isRawCount = aggregate.target === 0;
-    const isPass = isRawCount || aggregate.percentage >= summary.targetValue;
+    const isPass = aggregate.percentage >= resolveTarget(summary);
 
     if (isPass) {
       passed += 1;

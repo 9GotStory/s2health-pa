@@ -41,3 +41,21 @@ No credentials belong in `PUBLIC_API_BASE_URL`; it is a public endpoint value, n
 - Do not commit credentials, database connection strings, Tailscale auth keys, tokens, or other secrets.
 - Environment-specific API endpoints must not be hardcoded into application source.
 - The existing `pa-dashboard` GitHub Pages + Google Apps Script deployment remains independent.
+
+
+## Public API gateway
+
+The repository includes `gateway/gateway.mjs`, a small Node.js reverse proxy intended
+to run on Fedora beside the private API.
+
+It exposes only these upstream routes:
+
+- `GET /api/v1/health/ready`
+- `GET /api/v1/kpis`
+- `GET /api/v1/facilities`
+- `GET /api/v1/tambons`
+- `GET /api/v1/dashboard`
+
+The gateway does not expose `/api/v1/sync-status` or arbitrary API paths. It accepts
+configuration through environment variables (`UPSTREAM_ORIGIN`, `ALLOWED_ORIGIN`,
+`GATEWAY_HOST`, `GATEWAY_PORT`) so host-specific addresses remain outside source.

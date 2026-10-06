@@ -21,6 +21,11 @@ jobs:
         run: node --test test/*.test.js
 
       - name: Validate static module syntax
+        run: node --check site/js/*.js
+
+      - name: Enforce DOM injection boundary
         run: |
-          node --check site/js/contracts.js
-          node --check site/js/model.js
+          if grep -R -n -E '\\.(innerHTML|outerHTML)[[:space:]]*=' site/js; then
+            echo "Unsafe HTML assignment found"
+            exit 1
+          fi

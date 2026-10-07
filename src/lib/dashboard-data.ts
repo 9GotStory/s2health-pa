@@ -144,6 +144,41 @@ function optionalString(
   return value;
 }
 
+
+function optionalExternalHttpUrl(
+  record: Record<string, unknown>,
+  field: string,
+): string | null {
+  const value = optionalString(record, field);
+  if (value === null || value === '') return value;
+
+  if (value.trim() !== value) {
+    throw new Error(
+      `Field ${field} is not an absolute HTTP(S) URL, empty string, or null`,
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(
+      `Field ${field} is not an absolute HTTP(S) URL, empty string, or null`,
+    );
+  }
+
+  if (
+    (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+    parsed.hostname.length === 0
+  ) {
+    throw new Error(
+      `Field ${field} is not an absolute HTTP(S) URL, empty string, or null`,
+    );
+  }
+
+  return value;
+}
+
 function requireBoolean(
   record: Record<string, unknown>,
   field: string,
@@ -367,7 +402,7 @@ export function parseKpiCatalogResponse(value: unknown): PublicKpi[] {
       title: requireNonblankString(record, 'title'),
       target,
       order: requireInteger(record, 'order'),
-      link: optionalString(record, 'link'),
+      link: optionalExternalHttpUrl(record, 'link'),
       categoryCode: requireNonblankString(record, 'categoryCode'),
       category: requireNonblankString(record, 'category'),
       categoryOrder: requireInteger(record, 'categoryOrder'),

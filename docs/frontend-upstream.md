@@ -10,7 +10,7 @@ maintaining a second independently designed dashboard implementation.
 
 - upstream repository: `9GotStory/pa-dashboard`
 - upstream branch: `develop`
-- imported source SHA: `5e2cb484e7e42ee393c8a1044d024c57f50643b6`
+- imported source SHA: `bf34e3b296674b693e2dffaa6a8911c1d69e2cf8`
 
 ## Shared surface
 

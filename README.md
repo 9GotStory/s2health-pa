@@ -21,11 +21,15 @@ upstream rather than independently reimplemented here.
 
 ## Frontend upstream
 
-Initial frontend rebase authority:
+Current shared frontend authority:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
-- Source SHA: `c8a8edaef589f23ee9047529d13425f861d4190c`
+- Source SHA: `893603b32415cb06fab2c331acef575e8128cd75`
+
+The immutable Frontend Stabilization release baseline remains
+`a7df59805a405097d64268f0dfbc4538b3f7cbf3`; the authority above includes
+accepted Phase 2 shared frontend changes after that release.
 
 The imported surface includes the dashboard page, filters, summary cards,
 desktop table, mobile KPI cards, detail modal, export support, API contract
@@ -80,6 +84,7 @@ Commands:
 npm ci
 npm run test:dashboard
 npm run test:kpi-semantics
+npm run test:url-state
 node --test src/components/accessibility-contract.test.mjs
 npm run lint
 npm run dev

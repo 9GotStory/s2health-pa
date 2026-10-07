@@ -1,6 +1,6 @@
 # s2health-pa
 
-Public frontend for the Song District Health PA Dashboard (Fedora-backed edition).
+Public S2Health PA frontend for the Song District Health network.
 
 ## Public URL
 
@@ -8,79 +8,96 @@ https://9gotstory.github.io/s2health-pa/
 
 ## Architecture
 
-- Frontend: GitHub Pages + native ES modules
-- API: Fedora `pa-dashboard-api`
-- Database: PostgreSQL on Fedora
+- Frontend: Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- Hosting: GitHub Pages static export
+- Public API: Fedora `pa-dashboard-api`
 - Public API ingress: Tailscale Funnel over HTTPS
-- Monitoring: Prometheus / Grafana / private exporter on Fedora
-- Frontend runtime dependencies: none
+- Database: PostgreSQL on Fedora
+- Monitoring: Prometheus / Grafana on Fedora
 
-## Runtime API configuration
+The public frontend is adapted from the proven Backend-v2 frontend in
+`9GotStory/pa-dashboard`. Shared dashboard behavior should be reused from that
+upstream rather than independently reimplemented here.
 
-The Fedora API URL is **not hardcoded** in application source.
+## Frontend upstream
 
-GitHub Actions generates `site/config.js` at deployment time from the repository
-Actions variable:
+Initial frontend rebase authority:
+
+- Repository: `9GotStory/pa-dashboard`
+- Source branch: `develop`
+- Source SHA: `bb8c6e8034a61a5ce9ec792513fb9532325a34c4`
+
+The imported surface includes the dashboard page, filters, summary cards,
+desktop table, mobile KPI cards, detail modal, export support, API contract
+validation, grouping logic, KPI utilities, and related tests.
+
+Public-only adaptations are intentionally limited to:
+
+- Next.js static export for GitHub Pages
+- GitHub Pages base path `/s2health-pa`
+- public Backend-v2 API origin supplied at build time
+- S2Health branding/metadata
+- removal of internal `/sync`, container rewrites, and GAS deployment concerns
+
+See `docs/frontend-upstream.md` for the synchronization boundary.
+
+## Public API configuration
+
+The Fedora endpoint is not hardcoded into source.
+
+GitHub Actions maps the repository Actions variable:
 
 `PUBLIC_API_BASE_URL`
 
-The public frontend reads these Backend-v2 endpoints:
+to the public Next.js build variable:
+
+`NEXT_PUBLIC_API_BASE_URL`
+
+The value is public configuration, not a secret. The Pages workflow validates
+that it is an exact HTTPS origin before building.
+
+The frontend reads:
 
 - `/api/v1/dashboard`
 - `/api/v1/kpis`
 - `/api/v1/facilities`
 - `/api/v1/tambons`
 
-The API is the KPI calculation authority. The frontend validates the public
-contract, cross-checks references, aggregates already-calculated target/result
-rows for presentation, and never reimplements KPI calculation rules.
+Backend-v2 is the KPI calculation authority. Frontend code validates and
+aggregates already-calculated rows for presentation; it does not reimplement
+the KPI calculation rules.
 
-For browser access, the Fedora API ingress must allow the origin:
+## Development
 
-`https://9gotstory.github.io`
+Requirements:
 
-No credentials belong in `PUBLIC_API_BASE_URL`; it is a public endpoint value, not a secret.
+- Node.js 24
+- npm
+
+Commands:
+
+```sh
+npm ci
+npm run test:dashboard
+npm run lint
+npm run dev
+```
+
+Production static export:
+
+```sh
+NEXT_PUBLIC_API_BASE_URL=https://example.invalid \
+NEXT_PUBLIC_BASE_PATH=/s2health-pa \
+npm run build
+```
+
+The export is written to `out/`.
 
 ## Boundaries
 
-- This repository does **not** replace or modify `9GotStory/pa-dashboard`.
-- Do not commit credentials, database connection strings, Tailscale auth keys, tokens, or other secrets.
-- Environment-specific API endpoints must not be hardcoded into application source.
-- The existing `pa-dashboard` GitHub Pages + Google Apps Script deployment remains independent.
-
-## Public API ingress
-
-The Fedora `pa-dashboard-api` is the public read API for this frontend.
-
-Host deployment keeps the API on the private application network and publishes
-only `127.0.0.1:13001 -> 3001` for host-local ingress. Tailscale Funnel is
-configured separately to proxy public HTTPS traffic to that loopback endpoint.
-
-Browser CORS is configured on the API through host-only `PA_CORS_ORIGINS`;
-the GitHub Pages origin is `https://9gotstory.github.io`.
-
-No extra application gateway is required.
-
-
-## Frontend structure
-
-The dashboard intentionally stays zero-dependency while the interaction surface
-is small enough for native browser modules:
-
-- `site/js/contracts.js` — fail-closed validation of the public API contract
-- `site/js/model.js` — pure presentation aggregation and filtering
-- `site/js/api.js` — CORS fetch lifecycle and runtime config validation
-- `site/js/view.js` — DOM presentation using `textContent` for dynamic data
-- `site/js/app.js` — startup orchestration
-- `site/styles.css` — responsive design system
-- `test/*.test.js` — Node built-in unit tests with no package dependencies
-
-Run locally:
-
-```sh
-node --test test/*.test.js
-node --check site/js/*.js
-```
-
-Both CI and the Pages deployment run the tests, syntax checks, and a guard
-against direct `innerHTML`/`outerHTML` assignment before publication.
+- This repository does not modify the private PostgreSQL or Fedora runtime.
+- It does not contain database credentials, Tailscale auth keys, or secrets.
+- It does not expose the API container directly to LAN/WAN.
+- It does not use the legacy Google Apps Script data path.
+- It does not import the internal `/sync` surface from `pa-dashboard`.
+- The existing `pa-dashboard` deployment remains independent.

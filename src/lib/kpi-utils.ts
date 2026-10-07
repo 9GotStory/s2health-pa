@@ -210,6 +210,19 @@ export interface KPIValue {
   r: number;
 }
 
+function requireFiniteFilteredAggregate(
+  value: number,
+  field: "target" | "result" | "percentage",
+): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(
+      `Filtered KPI ${field} overflowed to a non-finite number`,
+    );
+  }
+
+  return value;
+}
+
 /**
  * Format a percentage for display, always with 2 decimals.
  * Use this everywhere a percentage is rendered as text so the rounding
@@ -264,8 +277,14 @@ export function computeAggregate(
   for (const f of selectedFacilities) {
     const entry = breakdown[f];
     if (!entry) continue;
-    selTarget += entry.target;
-    selResult += entry.result;
+    selTarget = requireFiniteFilteredAggregate(
+      selTarget + entry.target,
+      "target",
+    );
+    selResult = requireFiniteFilteredAggregate(
+      selResult + entry.result,
+      "result",
+    );
   }
 
   // Raw-count KPIs (totalTarget === 0) only track results.
@@ -277,9 +296,14 @@ export function computeAggregate(
     };
   }
 
+  const percentage = requireFiniteFilteredAggregate(
+    selTarget > 0 ? (selResult / selTarget) * 100 : 0,
+    "percentage",
+  );
+
   return {
     totalTarget: selTarget,
     totalResult: selResult,
-    percentage: selTarget > 0 ? (selResult / selTarget) * 100 : 0,
+    percentage,
   };
 }

@@ -11,7 +11,12 @@ import {
 import type { KPISummary, DashboardResultRow } from "@/lib/types";
 import { KPIDetailModal } from "./KPIDetailModal";
 import { exportToExcel } from "@/lib/excel-export";
-import { computeAggregate, DEFAULT_TARGET, formatPct } from "@/lib/kpi-utils";
+import {
+  computeAggregate,
+  DEFAULT_TARGET,
+  formatPct,
+  isRawCountKPI,
+} from "@/lib/kpi-utils";
 import { partitionByCategory } from "@/lib/kpi-grouping";
 import {
   ExternalLink,
@@ -211,14 +216,17 @@ export default function KPITable({
             kpi,
             selectedFacilities,
           );
-          const isRawCount = totalTarget === 0;
+          const isRawCount = isRawCountKPI(kpi);
+          const hasPercentageValue = !isRawCount && totalTarget > 0;
 
           return (
             <div className="w-full text-center">
               <span className="font-bold text-sm tracking-tight">
                 {isRawCount
                   ? totalResult.toLocaleString()
-                  : `${formatPct(percentage)}%`}
+                  : hasPercentageValue
+                    ? `${formatPct(percentage)}%`
+                    : "—"}
               </span>
             </div>
           );
@@ -234,13 +242,14 @@ export default function KPITable({
               selectedFacilities,
             );
             const targetVal = kpi.targetValue || DEFAULT_TARGET;
-            const isRawCount = totalTarget === 0;
+            const isRawCount = isRawCountKPI(kpi);
+            const hasPercentageValue = !isRawCount && totalTarget > 0;
 
             // Common Sticky Style + Separator
             const stickyStyle =
               "md:sticky left-[274px] z-30 w-[75px] min-w-[75px] border-r-[3px] border-slate-200 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.15)]";
 
-            if (isRawCount) {
+            if (isRawCount || !hasPercentageValue) {
               return `${stickyStyle} bg-neutral-100 text-center font-medium text-neutral-600`;
             }
 
@@ -275,7 +284,7 @@ export default function KPITable({
             if (!facilityData)
               return <span className="text-neutral-300 text-[10px]">-</span>;
 
-            const isRawCount = kpi.totalTarget === 0;
+            const isRawCount = isRawCountKPI(kpi);
 
             return (
               <button
@@ -306,7 +315,7 @@ export default function KPITable({
               const kpi = row.original;
               const targetVal = kpi.targetValue || DEFAULT_TARGET;
               const facilityData = kpi.breakdown?.[key];
-              const isRawCount = kpi.totalTarget === 0;
+              const isRawCount = isRawCountKPI(kpi);
 
               // No Data / Empty -> Gray
               if (!facilityData || facilityData.target === 0) {
@@ -335,7 +344,7 @@ export default function KPITable({
         id: "target",
         header: "Target",
         cell: (info) => {
-          const isRawCount = info.row.original.totalTarget === 0;
+          const isRawCount = isRawCountKPI(info.row.original);
 
           return isRawCount ? (
             <span className="text-xs text-neutral-500">

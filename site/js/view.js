@@ -171,6 +171,10 @@ function createKpiCard(summary, model, facilityCode) {
   const badges = element("div", "kpi-card__badges");
 
   badges.append(
+    createStatusBadge(
+      passed ? "ผ่านเกณฑ์" : "ต้องติดตาม",
+      passed ? "success" : "attention",
+    ),
     createStatusBadge(summary.category, "soft"),
     createStatusBadge(summary.periodLabel, "neutral"),
   );
@@ -417,7 +421,17 @@ export function mountDashboard(root, model) {
   const categories = element("div", "categories");
   categories.setAttribute("aria-label", "กรองตามหมวดตัวชี้วัด");
 
-  controls.append(controlGrid, categories);
+  const filterContext = element("div", "filter-context");
+  const filterContextText = element("p", "filter-context__text");
+  const clearFilters = element(
+    "button",
+    "filter-context__clear",
+    "ล้างตัวกรอง",
+  );
+  clearFilters.type = "button";
+
+  filterContext.append(filterContextText, clearFilters);
+  controls.append(controlGrid, categories, filterContext);
 
   const resultHeader = element("div", "results-header");
   const resultTitle = element("h2", "", "ตัวชี้วัด");
@@ -446,13 +460,46 @@ export function mountDashboard(root, model) {
       query: state.query,
     });
 
-    const stats = getDashboardStats(model.summaries, state.facilityCode);
+    const stats = getDashboardStats(visible, state.facilityCode);
+
+    const hasFilters =
+      Boolean(state.facilityCode) ||
+      Boolean(state.categoryCode) ||
+      Boolean(state.query.trim());
+
+    const categoryName =
+      state.categoryCode
+        ? getCategories(model.summaries).find(
+            (category) => category.code === state.categoryCode,
+          )?.name || state.categoryCode
+        : "ทุกหมวด";
+
+    const facilityName =
+      state.facilityCode
+        ? model.facilityMap[state.facilityCode]?.name || state.facilityCode
+        : "ภาพรวมอำเภอ";
+
+    const contextParts = [
+      facilityName,
+      categoryName,
+    ];
+
+    if (state.query.trim()) {
+      contextParts.push(`ค้นหา “${state.query.trim()}”`);
+    }
+
+    filterContextText.textContent =
+      `กำลังดู · ${contextParts.join(" · ")}`;
+
+    clearFilters.hidden = !hasFilters;
 
     metrics.replaceChildren(
       createMetricCard(
         "ตัวชี้วัดทั้งหมด",
         formatNumber(stats.total),
-        state.facilityCode ? "ตามชุดข้อมูลปัจจุบัน" : "ทุกหมวด",
+        hasFilters
+          ? `จากทั้งหมด ${model.summaries.length} ตัวชี้วัด`
+          : "ทุกหมวด",
       ),
       createMetricCard(
         "อัตราผ่านเกณฑ์",
@@ -517,6 +564,15 @@ export function mountDashboard(root, model) {
 
   facility.addEventListener("change", (event) => {
     state.facilityCode = event.currentTarget.value;
+    refresh();
+  });
+
+  clearFilters.addEventListener("click", () => {
+    state.facilityCode = "";
+    state.categoryCode = "";
+    state.query = "";
+    search.value = "";
+    facility.value = "";
     refresh();
   });
 

@@ -71,3 +71,34 @@ test("raw-count KPI is never classified as pass or fail", () => {
     percentage: 100,
   });
 });
+
+
+test("computeAggregate returns full totals when no facility filter is active", () => {
+  const kpi = summary();
+
+  assert.deepEqual(computeAggregate(kpi), {
+    totalTarget: 100,
+    totalResult: 80,
+    percentage: 80,
+  });
+});
+
+test("computeAggregate scopes a percentage KPI to one selected facility", () => {
+  const kpi = summary();
+
+  assert.deepEqual(computeAggregate(kpi, ["06414"]), {
+    totalTarget: 50,
+    totalResult: 35,
+    percentage: 70,
+  });
+});
+
+test("computeAggregate combines multiple selected facilities deterministically", () => {
+  const kpi = summary();
+
+  assert.deepEqual(computeAggregate(kpi, ["06414", "06413"]), {
+    totalTarget: 100,
+    totalResult: 80,
+    percentage: 80,
+  });
+});

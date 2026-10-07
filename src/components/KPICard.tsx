@@ -2,10 +2,10 @@ import { useState, type MouseEvent } from "react";
 import type { KPISummary } from "@/lib/types";
 import {
   computeAggregate,
-  DEFAULT_TARGET,
   evaluateKPI,
   formatPct,
   isRawCountKPI,
+  resolveKpiTarget,
 } from "@/lib/kpi-utils";
 import {
   ExternalLink,
@@ -38,7 +38,7 @@ export function KPICard({
 
   const isRawCount = isRawCountKPI(kpi);
   const hasPercentageValue = !isRawCount && totalTarget > 0;
-  const targetVal = kpi.targetValue || DEFAULT_TARGET;
+  const targetVal = resolveKpiTarget(kpi);
   const evaluation = evaluateKPI(kpi, selectedFacilities);
   const isPass = evaluation === "pass";
 

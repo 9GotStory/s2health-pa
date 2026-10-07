@@ -44,6 +44,9 @@ jobs:
       - name: Run Excel export filter contract tests
         run: npm run test:excel-export
 
+      - name: Run KPI type under filter contract tests
+        run: node --test src/lib/kpi-type-filter-contract.test.mjs
+
       - name: Run accessibility contract tests
         run: node --test src/components/accessibility-contract.test.mjs
 

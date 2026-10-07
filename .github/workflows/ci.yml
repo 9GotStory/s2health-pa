@@ -50,6 +50,9 @@ jobs:
       - name: Run summary availability contract tests
         run: node --test src/components/kpi-summary-availability-contract.test.mjs
 
+      - name: Run KPI target resolution contract tests
+        run: node --test src/lib/kpi-target-resolution-contract.test.mjs
+
       - name: Run accessibility contract tests
         run: node --test src/components/accessibility-contract.test.mjs
 

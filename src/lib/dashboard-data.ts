@@ -603,7 +603,7 @@ export function buildDashboardModel(input: {
       percentage,
       data: rows,
       breakdown,
-      targetValue: kpi.target ?? 0,
+      targetValue: kpi.target,
       targetMonths,
       link: kpi.link ?? undefined,
       period: periodLabel,

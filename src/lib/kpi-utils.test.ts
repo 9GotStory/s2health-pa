@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   computeAggregate,
+  DEFAULT_TARGET,
   evaluateKPI,
   isRawCountKPI,
+  resolveKpiTarget,
   summarizeKPIEvaluations,
 } from "./kpi-utils.ts";
 import type { KPISummary } from "./types";
@@ -36,6 +38,22 @@ function summary(
     ...overrides,
   };
 }
+
+test("target resolver preserves explicit zero and defaults only null", () => {
+  assert.equal(resolveKpiTarget(summary({ targetValue: 0 })), 0);
+  assert.equal(resolveKpiTarget(summary({ targetValue: null })), DEFAULT_TARGET);
+  assert.equal(resolveKpiTarget(summary({ targetValue: 85 })), 85);
+});
+
+test("percentage KPI evaluation honors an explicit zero target", () => {
+  const kpi = summary({
+    percentage: 0,
+    totalResult: 0,
+    targetValue: 0,
+  });
+
+  assert.equal(evaluateKPI(kpi), "pass");
+});
 
 test("percentage KPI evaluation uses the configured target", () => {
   const kpi = summary();

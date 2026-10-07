@@ -13,9 +13,9 @@ import { KPIDetailModal } from "./KPIDetailModal";
 import { exportToExcel } from "@/lib/excel-export";
 import {
   computeAggregate,
-  DEFAULT_TARGET,
   formatPct,
   isRawCountKPI,
+  resolveKpiTarget,
 } from "@/lib/kpi-utils";
 import { partitionByCategory } from "@/lib/kpi-grouping";
 import {
@@ -127,7 +127,7 @@ export default function KPITable({
         title: kpi.title,
         facilityName: facilityName,
         data: facilityRawData,
-        targetValue: kpi.targetValue || DEFAULT_TARGET,
+        targetValue: resolveKpiTarget(kpi),
       });
     },
     [hospitalMap],
@@ -241,7 +241,7 @@ export default function KPITable({
               kpi,
               selectedFacilities,
             );
-            const targetVal = kpi.targetValue || DEFAULT_TARGET;
+            const targetVal = resolveKpiTarget(kpi);
             const isRawCount = isRawCountKPI(kpi);
             const hasPercentageValue = !isRawCount && totalTarget > 0;
 
@@ -313,7 +313,7 @@ export default function KPITable({
               "px-2 py-2 text-center min-w-17.5 w-17.5 bg-slate-50 border-b border-slate-200 align-middle overflow-hidden",
             getCellClassName: (row: Row<KPISummary>) => {
               const kpi = row.original;
-              const targetVal = kpi.targetValue || DEFAULT_TARGET;
+              const targetVal = resolveKpiTarget(kpi);
               const facilityData = kpi.breakdown?.[key];
               const isRawCount = isRawCountKPI(kpi);
 
@@ -355,7 +355,7 @@ export default function KPITable({
             </span>
           ) : (
             <span className="text-xs">
-              ≥{info.getValue() || DEFAULT_TARGET}
+              ≥{resolveKpiTarget(info.row.original)}
               <span className="block text-[9px] font-normal text-warning-600/80">
                 ({info.row.original.targetMonths} เดือน)
               </span>

@@ -7,6 +7,16 @@ import type { KPISummary, DashboardResultRow } from "./types";
  */
 export const DEFAULT_TARGET = 80;
 
+/**
+ * Resolve a KPI threshold without treating an explicit zero as missing.
+ * Only null means the catalog omitted a target and should use the fallback.
+ */
+export function resolveKpiTarget(
+  kpi: Pick<KPISummary, "targetValue">,
+): number {
+  return kpi.targetValue ?? DEFAULT_TARGET;
+}
+
 export type KPIEvaluation = "pass" | "fail" | "not-applicable";
 
 /**
@@ -40,7 +50,7 @@ export function evaluateKPI(
     return "not-applicable";
   }
 
-  const target = kpi.targetValue || DEFAULT_TARGET;
+  const target = resolveKpiTarget(kpi);
   return percentage >= target ? "pass" : "fail";
 }
 

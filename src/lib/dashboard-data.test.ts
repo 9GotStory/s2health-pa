@@ -194,10 +194,17 @@ test('F: catalog metadata maps onto KPISummary', () => {
   assert.equal(withMeta.category, 'สร้างเสริมภูมิคุ้มกันโรค');
   assert.equal(withMeta.subgroup, 'กลุ่มอายุ 2 ปี');
   assert.equal(withMeta.categoryOrder, 2);
-  // null catalog values fall back to neutral presentation defaults.
-  assert.equal(minimal.targetValue, 0);
+  // Null catalog target stays distinguishable from an explicit numeric target.
+  assert.equal(minimal.targetValue, null);
   assert.equal(minimal.link, undefined);
   assert.equal(minimal.subgroup, '');
+});
+
+test('F2: explicit zero KPI target is preserved in the presentation model', () => {
+  const model = buildModel({
+    kpis: [wireKpi({ target: 0 })],
+  });
+  assert.equal(model.summaries[0].targetValue, 0);
 });
 
 test('G: annual KPI presents 12 months / รายปี', () => {

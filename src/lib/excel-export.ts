@@ -3,8 +3,8 @@ import writeExcelFile from "write-excel-file/browser";
 import type { KPISummary } from "./types";
 import {
   computeAggregate,
-  DEFAULT_TARGET,
   isRawCountKPI,
+  resolveKpiTarget,
   roundPct,
 } from "./kpi-utils";
 
@@ -226,8 +226,7 @@ export async function exportToExcel(
           aggregate.totalTarget > 0;
 
         const targetValue =
-          kpi.targetValue ||
-          DEFAULT_TARGET;
+          resolveKpiTarget(kpi);
 
         const resultValue =
           isRawCount

@@ -39,10 +39,15 @@ export default function Home() {
       : "",
   );
 
-  // Categories in display order (category_order → first appearance).
+  // Categories follow the KPI-filtered slice so tab availability/counts
+  // describe the same dataset as the summary and detail views.
   const categories = useMemo(() => {
+    const source =
+      selectedKPIs.length === 0
+        ? data
+        : data.filter((kpi) => selectedKPIs.includes(kpi.tableName));
     const seen = new Map<string, number>();
-    data.forEach((kpi) => {
+    source.forEach((kpi) => {
       const cat = kpi.category ?? "";
       if (!cat || seen.has(cat)) return;
       seen.set(cat, kpi.categoryOrder ?? 999);
@@ -50,7 +55,7 @@ export default function Home() {
     return Array.from(seen.entries())
       .sort((a, b) => a[1] - b[1])
       .map(([name]) => name);
-  }, [data]);
+  }, [data, selectedKPIs]);
 
   // Derived guard: if the selected category no longer exists (data reload,
   // registry edit), view falls back to ทั้งหมด without a state reset.
@@ -201,7 +206,7 @@ export default function Home() {
               ทั้งหมด
             </button>
             {categories.map((cat) => {
-              const count = data.filter((k) => (k.category ?? "") === cat).length;
+              const count = filteredData.filter((k) => (k.category ?? "") === cat).length;
               return (
                 <button
                   key={cat}

@@ -1,5 +1,5 @@
 import type { KPISummary } from "@/lib/types";
-import { evaluateKPI, isRawCountKPI } from "@/lib/kpi-utils";
+import { summarizeKPIEvaluations } from "@/lib/kpi-utils";
 import { Target, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface KPISummaryStatsProps {
@@ -11,22 +11,15 @@ export default function KPISummaryStats({
   data,
   selectedFacilities = [],
 }: KPISummaryStatsProps) {
-  const total = data.length;
-
-  const evaluations = data.map((kpi) =>
-    evaluateKPI(kpi, selectedFacilities),
-  );
-  const evaluated = evaluations.filter(
-    (evaluation) => evaluation !== "not-applicable",
-  ).length;
-  const passed = evaluations.filter(
-    (evaluation) => evaluation === "pass",
-  ).length;
-  const failed = evaluations.filter(
-    (evaluation) => evaluation === "fail",
-  ).length;
-  const rawCount = data.filter(isRawCountKPI).length;
-  const successRate = evaluated > 0 ? (passed / evaluated) * 100 : 0;
+  const {
+    total,
+    evaluated,
+    passed,
+    failed,
+    rawCount,
+    unavailablePercentage,
+    successRate,
+  } = summarizeKPIEvaluations(data, selectedFacilities);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -42,9 +35,12 @@ export default function KPISummaryStats({
           <p className="text-2xl font-bold text-neutral-800 font-prompt">
             {total}
           </p>
-          {rawCount > 0 && (
+          {(rawCount > 0 || unavailablePercentage > 0) && (
             <p className="text-[10px] text-neutral-400 mt-0.5">
-              {rawCount} ตัวเป็นแบบจำนวน
+              {rawCount > 0 && `${rawCount} แบบจำนวน`}
+              {rawCount > 0 && unavailablePercentage > 0 && " · "}
+              {unavailablePercentage > 0 &&
+                `${unavailablePercentage} ไม่มีฐานประเมิน`}
             </p>
           )}
         </div>
@@ -60,10 +56,12 @@ export default function KPISummaryStats({
             อัตราผ่านเกณฑ์
           </p>
           <p className="text-2xl font-bold text-accent-700 font-prompt">
-            {successRate.toFixed(1)}%
+            {successRate === null ? "—" : `${successRate.toFixed(1)}%`}
           </p>
           <p className="text-[10px] text-neutral-400 mt-0.5">
-            จาก {evaluated} ตัวที่มีเกณฑ์ประเมิน
+            {evaluated > 0
+              ? `จาก ${evaluated} ตัวที่ประเมินได้`
+              : "ไม่มีตัวชี้วัดที่ประเมินได้"}
           </p>
         </div>
       </div>

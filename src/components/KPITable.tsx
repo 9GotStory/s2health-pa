@@ -14,6 +14,7 @@ import { exportToExcel } from "@/lib/excel-export";
 import {
   computeAggregate,
   formatPct,
+  matchesFacilityFilter,
   isRawCountKPI,
   resolveKpiTarget,
 } from "@/lib/kpi-utils";
@@ -116,8 +117,8 @@ export default function KPITable({
 
   const openDrillDown = useCallback(
     (kpi: KPISummary, facilityKey: string) => {
-      const facilityRawData = kpi.data.filter(
-        (d) => d.hospcode === facilityKey || d.areacode === facilityKey,
+      const facilityRawData = kpi.data.filter((row) =>
+        matchesFacilityFilter(row, [facilityKey]),
       );
       const facilityInfo = hospitalMap[facilityKey];
       const facilityName = facilityInfo ? facilityInfo.name : facilityKey;

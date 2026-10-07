@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint",
-    "test:dashboard": "node --test src/lib/dashboard-data.test.ts"
+    "test:dashboard": "node --test src/lib/dashboard-data.test.ts",
+    "test:kpi-semantics": "node --test src/lib/kpi-utils.test.ts"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",

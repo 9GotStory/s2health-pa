@@ -44,6 +44,62 @@ export function evaluateKPI(
   return percentage >= target ? "pass" : "fail";
 }
 
+
+export interface KPISummaryEvaluation {
+  total: number;
+  evaluated: number;
+  passed: number;
+  failed: number;
+  rawCount: number;
+  unavailablePercentage: number;
+  successRate: number | null;
+}
+
+/**
+ * Classify KPI summary semantics for the current facility scope.
+ *
+ * Raw-count KPIs are classified by canonical KPI type. A percentage KPI can
+ * be temporarily unevaluable when the selected facilities have no denominator;
+ * that state is tracked separately so totals always reconcile.
+ */
+export function summarizeKPIEvaluations(
+  data: KPISummary[],
+  selectedFacilities: string[] = [],
+): KPISummaryEvaluation {
+  let passed = 0;
+  let failed = 0;
+  let rawCount = 0;
+  let unavailablePercentage = 0;
+
+  for (const kpi of data) {
+    if (isRawCountKPI(kpi)) {
+      rawCount += 1;
+      continue;
+    }
+
+    const evaluation = evaluateKPI(kpi, selectedFacilities);
+    if (evaluation === "pass") {
+      passed += 1;
+    } else if (evaluation === "fail") {
+      failed += 1;
+    } else {
+      unavailablePercentage += 1;
+    }
+  }
+
+  const evaluated = passed + failed;
+
+  return {
+    total: data.length,
+    evaluated,
+    passed,
+    failed,
+    rawCount,
+    unavailablePercentage,
+    successRate: evaluated > 0 ? (passed / evaluated) * 100 : null,
+  };
+}
+
 export interface KPIValue {
   t: number;
   r: number;

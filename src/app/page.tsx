@@ -253,15 +253,10 @@ export default function Home() {
           kpiList={dynamicKPIList}
           selectedFacilities={selectedFacilities}
           selectedKPIs={selectedKPIs}
-          onFacilitiesChange={(facilities) =>
+          onSelectionChange={({ facilities, kpis }) =>
             commitDashboardUrlState({
               ...dashboardViewState,
               facilities,
-            })
-          }
-          onKPIsChange={(kpis) =>
-            commitDashboardUrlState({
-              ...dashboardViewState,
               kpis,
             })
           }

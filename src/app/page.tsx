@@ -10,8 +10,37 @@ import DashboardFilter from "@/components/DashboardFilter";
 
 import DataStatusNotifier from "@/components/DataStatusNotifier";
 import { useKPIData } from "@/lib/useKPIData";
+import {
+  dashboardUrlStateEquals,
+  normalizeDashboardUrlState,
+  parseDashboardUrlState,
+  sanitizeDashboardUrlState,
+  serializeDashboardUrlState,
+  type DashboardUrlState,
+} from "@/lib/dashboard-url-state";
 import type { KPIMaster } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+type DashboardHistoryMode = "push" | "replace";
+
+function writeDashboardUrlState(
+  state: DashboardUrlState,
+  mode: DashboardHistoryMode,
+) {
+  const query = serializeDashboardUrlState(state);
+  const nextUrl = query
+    ? `${window.location.pathname}?${query}`
+    : window.location.pathname;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+  if (nextUrl === currentUrl) return;
+
+  if (mode === "push") {
+    window.history.pushState(window.history.state, "", nextUrl);
+  } else {
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }
+}
 
 export default function Home() {
   const {
@@ -24,20 +53,42 @@ export default function Home() {
     lastUpdated,
   } = useKPIData();
 
-  // Multi-Checkbox Filter States
-  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
-  const [selectedKPIs, setSelectedKPIs] = useState<string[]>([]);
-
-  // Active category tab: "" = ทั้งหมด, otherwise a category name. Derived
-  // from the data (kpi_registry manifest), so future categories appear as
-  // tabs automatically. Synced to ?cat= for shareable deep links. Lazy-init
-  // from the URL: safe even under SSR because the first paint is always the
-  // loading skeleton (tabs render only after client-side data arrives).
-  const [activeCategory, setActiveCategory] = useState(() =>
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("cat") ?? ""
-      : "",
+  // Shareable dashboard view state. Category keeps the existing ?cat=
+  // contract; facility/KPI selections use repeated stable machine IDs.
+  // Lazy initialization is safe under SSR because filtered content renders
+  // only after the client-side dashboard data has loaded.
+  const [dashboardUrlState, setDashboardUrlState] = useState<DashboardUrlState>(
+    () =>
+      typeof window !== "undefined"
+        ? parseDashboardUrlState(window.location.search)
+        : { category: "", facilities: [], kpis: [] },
   );
+  const commitDashboardUrlState = (
+    nextState: DashboardUrlState,
+    mode: DashboardHistoryMode = "push",
+  ) => {
+    const normalized = normalizeDashboardUrlState(nextState);
+    setDashboardUrlState(normalized);
+    writeDashboardUrlState(normalized, mode);
+  };
+
+  // Derive the valid dashboard state instead of synchronously rewriting React
+  // state from an effect. Before reference data is ready, keep the parsed URL
+  // state intact; once loaded, stale machine IDs are removed for rendering.
+  const validatedDashboardUrlState = useMemo(() => {
+    if (isLoading || dataset === null) {
+      return normalizeDashboardUrlState(dashboardUrlState);
+    }
+
+    return sanitizeDashboardUrlState(dashboardUrlState, {
+      categories: data.map((kpi) => kpi.category ?? "").filter(Boolean),
+      facilities: Object.keys(hospitalMap),
+      kpis: data.map((kpi) => kpi.tableName),
+    });
+  }, [dashboardUrlState, data, dataset, hospitalMap, isLoading]);
+
+  const selectedFacilities = validatedDashboardUrlState.facilities;
+  const selectedKPIs = validatedDashboardUrlState.kpis;
 
   // Categories follow the KPI-filtered slice so tab availability/counts
   // describe the same dataset as the summary and detail views.
@@ -57,25 +108,31 @@ export default function Home() {
       .map(([name]) => name);
   }, [data, selectedKPIs]);
 
-  // Derived guard: if the selected category no longer exists (data reload,
-  // registry edit), view falls back to ทั้งหมด without a state reset.
-  const currentCategory =
-    activeCategory && categories.length > 0 && !categories.includes(activeCategory)
-      ? ""
-      : activeCategory;
+  // Preserve the previous category fallback semantics while making the
+  // canonical view state the source used by rendering and future user actions.
+  const dashboardViewState = useMemo(
+    () => ({
+      ...validatedDashboardUrlState,
+      category:
+        validatedDashboardUrlState.category &&
+        categories.length > 0 &&
+        !categories.includes(validatedDashboardUrlState.category)
+          ? ""
+          : validatedDashboardUrlState.category,
+    }),
+    [categories, validatedDashboardUrlState],
+  );
+  const currentCategory = dashboardViewState.category;
 
-  // Persist tab to URL (external system sync — no setState here).
+  // Browser navigation is authoritative: back/forward restores the complete
+  // dashboard view state without a reload.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (currentCategory) params.set("cat", currentCategory);
-    else params.delete("cat");
-    const qs = params.toString();
-    window.history.replaceState(
-      null,
-      "",
-      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-    );
-  }, [currentCategory]);
+    const restoreFromHistory = () => {
+      setDashboardUrlState(parseDashboardUrlState(window.location.search));
+    };
+    window.addEventListener("popstate", restoreFromHistory);
+    return () => window.removeEventListener("popstate", restoreFromHistory);
+  }, []);
 
   // Filter Data based on Selected KPIs
   const filteredData = useMemo(() => {
@@ -110,6 +167,16 @@ export default function Home() {
       })),
     [data],
   );
+
+  // Canonical URL cleanup is an external-system synchronization only.
+  // Rendering already uses dashboardViewState, so no synchronous setState is
+  // required here. replaceState avoids adding a misleading history entry.
+  useEffect(() => {
+    if (isLoading || dataset === null) return;
+    if (dashboardUrlStateEquals(dashboardViewState, dashboardUrlState)) return;
+
+    writeDashboardUrlState(dashboardViewState, "replace");
+  }, [dashboardUrlState, dashboardViewState, dataset, isLoading]);
 
   if (isLoading) {
     return (
@@ -186,15 +253,30 @@ export default function Home() {
           kpiList={dynamicKPIList}
           selectedFacilities={selectedFacilities}
           selectedKPIs={selectedKPIs}
-          onFacilitiesChange={setSelectedFacilities}
-          onKPIsChange={setSelectedKPIs}
+          onFacilitiesChange={(facilities) =>
+            commitDashboardUrlState({
+              ...dashboardViewState,
+              facilities,
+            })
+          }
+          onKPIsChange={(kpis) =>
+            commitDashboardUrlState({
+              ...dashboardViewState,
+              kpis,
+            })
+          }
         />
 
         {/* CATEGORY TABS — one per registry tab + ทั้งหมด */}
         {categories.length > 1 && (
           <div className="mb-6 flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
             <button
-              onClick={() => setActiveCategory("")}
+              onClick={() =>
+                commitDashboardUrlState({
+                  ...dashboardViewState,
+                  category: "",
+                })
+              }
               className={cn(
                 "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all shadow-sm border font-prompt",
                 currentCategory === ""
@@ -210,7 +292,12 @@ export default function Home() {
               return (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() =>
+                    commitDashboardUrlState({
+                      ...dashboardViewState,
+                      category: cat,
+                    })
+                  }
                   className={cn(
                     "px-3.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all shadow-sm border font-prompt",
                     currentCategory === cat

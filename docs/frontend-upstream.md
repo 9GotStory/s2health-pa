@@ -10,13 +10,14 @@ maintaining a second independently designed dashboard implementation.
 
 - upstream repository: `9GotStory/pa-dashboard`
 - upstream branch: `develop`
-- imported source SHA: `c8a8edaef589f23ee9047529d13425f861d4190c`
+- imported source SHA: `893603b32415cb06fab2c331acef575e8128cd75`
 
 ## Shared surface
 
 These areas are expected to stay conceptually aligned with upstream:
 
 - `src/app/page.tsx`
+- `src/app/dashboard-url-state-contract.test.mjs`
 - `src/components/DashboardFilter.tsx`
 - `src/components/DashboardSkeleton.tsx`
 - `src/components/DataStatusNotifier.tsx`
@@ -29,6 +30,8 @@ These areas are expected to stay conceptually aligned with upstream:
 - `src/components/ui/table.tsx`
 - `src/lib/dashboard-data.ts`
 - `src/lib/dashboard-data.test.ts`
+- `src/lib/dashboard-url-state.ts`
+- `src/lib/dashboard-url-state.test.ts`
 - `src/lib/excel-export.ts`
 - `src/lib/kpi-grouping.ts`
 - `src/lib/kpi-utils.ts`
@@ -43,7 +46,7 @@ Do not blindly overwrite these when syncing from upstream:
 - `next.config.ts` — static export + GitHub Pages base path
 - `src/lib/useKPIData.ts` — public HTTPS API origin instead of same-origin rewrite
 - `src/app/layout.tsx` — public metadata/language
-- `src/app/page.tsx` — S2Health naming only; dashboard behavior should stay aligned
+- `src/app/page.tsx` — S2Health naming/font adaptation only; dashboard behavior should stay aligned
 - `.github/workflows/*` — GitHub Pages build/deploy
 - `README.md` and this file
 

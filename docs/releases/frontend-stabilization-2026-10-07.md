@@ -89,11 +89,17 @@ PostgreSQL
 
 The frontend does not reimplement Backend-v2 KPI calculation rules.
 
-## Verified merged branches eligible for deletion
+## Branch cleanup — complete
 
-These branches are no longer needed for code history because their pull requests are merged.
+Merged feature/sync branches were deleted after release acceptance.
 
 ### s2health-pa
+
+Remaining branch:
+
+- `main`
+
+Deleted merged branches:
 
 | Branch | Merged PR |
 | --- | ---: |
@@ -107,6 +113,13 @@ These branches are no longer needed for code history because their pull requests
 
 ### pa-dashboard
 
+Remaining branches:
+
+- `main`
+- `develop`
+
+Deleted merged branches:
+
 | Branch | Merged PR |
 | --- | ---: |
 | `feature/s2health-public-api` | #33 |
@@ -115,23 +128,23 @@ These branches are no longer needed for code history because their pull requests
 | `fix/dashboard-accessibility-uat` | #36 |
 | `fix/raw-count-kpi-semantics` | #37 |
 
-Branch deletion is intentionally not claimed by this record. The connected GitHub tool currently exposes branch reads/creation but no branch-delete action.
+## Tag and GitHub Release — published
 
-## Tag and GitHub Release status
+Formal immutable release marker:
 
-No Git tag or GitHub Release object is claimed by this record.
+- Tag: `frontend-stabilization-2026-10-07`
+- Tag target: `a7df59805a405097d64268f0dfbc4538b3f7cbf3`
+- Release title: `S2Health PA — Frontend Stabilization Baseline (2026-10-07)`
+- Release status: published, not draft, not prerelease
 
-The connected GitHub tool currently exposes release reads but no tag/release creation action. If a formal immutable release marker is created later, it should point to the functional baseline commit:
+The tag intentionally points to the functional production baseline rather than the later docs-only commit on `main`.
 
-`a7df59805a405097d64268f0dfbc4538b3f7cbf3`
+## Post-release documentation validation
 
-Recommended tag name:
+The docs-only release-record commit was subsequently validated by GitHub Actions:
 
-`frontend-stabilization-2026-10-07`
-
-Recommended release title:
-
-`S2Health PA — Frontend Stabilization Baseline (2026-10-07)`
+- CI: `37575850129` — success
+- Deploy GitHub Pages: `37575850182` — success
 
 ## Next development rule
 

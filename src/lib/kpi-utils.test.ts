@@ -395,3 +395,62 @@ test("dashboard area label preserves raw code when geographic metadata is unavai
     "-",
   );
 });
+
+
+test("filtered aggregate fails closed when selected target accumulation overflows", () => {
+  const max = Number.MAX_VALUE;
+  const kpi = summary({
+    totalTarget: max,
+    totalResult: 0,
+    percentage: 0,
+    breakdown: {
+      a: { target: max, result: 0, percentage: 0 },
+      b: { target: -max, result: 0, percentage: 0 },
+      c: { target: max, result: 0, percentage: 0 },
+    },
+  });
+
+  assert.throws(
+    () => computeAggregate(kpi, ["a", "c"]),
+    /Filtered KPI target overflowed to a non-finite number/,
+  );
+});
+
+test("filtered aggregate fails closed when selected result accumulation overflows", () => {
+  const max = Number.MAX_VALUE;
+  const target = max / 3;
+  const kpi = summary({
+    totalTarget: max,
+    totalResult: max,
+    percentage: 100,
+    breakdown: {
+      a: { target, result: max, percentage: 300 },
+      b: { target, result: -max, percentage: -300 },
+      c: { target, result: max, percentage: 300 },
+    },
+  });
+
+  assert.throws(
+    () => computeAggregate(kpi, ["a", "c"]),
+    /Filtered KPI result overflowed to a non-finite number/,
+  );
+});
+
+test("filtered aggregate fails closed when selected percentage overflows", () => {
+  const largeResult = Number.MAX_VALUE / 1000;
+  const kpi = summary({
+    totalTarget: 1,
+    totalResult: largeResult,
+    percentage: largeResult * 100,
+    breakdown: {
+      a: { target: 1, result: largeResult, percentage: largeResult * 100 },
+      b: { target: -0.9999999999999999, result: 0, percentage: 0 },
+      c: { target: 0.9999999999999999, result: 0, percentage: 0 },
+    },
+  });
+
+  assert.throws(
+    () => computeAggregate(kpi, ["a", "b"]),
+    /Filtered KPI percentage overflowed to a non-finite number/,
+  );
+});

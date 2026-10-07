@@ -19,6 +19,56 @@ export function resolveKpiTarget(
 
 export type KPIEvaluation = "pass" | "fail" | "not-applicable";
 
+export interface FacilityFilterDetail {
+  readonly name: string;
+  readonly tambon_id: string;
+}
+
+/**
+ * Build the complete facility-filter domain used by dashboard breakdowns.
+ *
+ * The reference registry supplies labels/tambon metadata, but Backend v2
+ * contractually allows valid breakdown keys that are absent from that
+ * registry (including areacode fallback keys when hospcode is null).
+ */
+export function collectFacilityFilterKeys(
+  data: readonly Pick<KPISummary, "breakdown">[],
+  hospitalMap: Readonly<Record<string, FacilityFilterDetail>>,
+): string[] {
+  const keys = new Set<string>(
+    Object.keys(hospitalMap),
+  );
+
+  for (const kpi of data) {
+    for (const key of Object.keys(kpi.breakdown)) {
+      keys.add(key);
+    }
+  }
+
+  return Array.from(keys).sort();
+}
+
+/**
+ * Resolve the same breakdown key used by buildDashboardModel().
+ */
+export function resultFacilityFilterKey(
+  row: Pick<DashboardResultRow, "hospcode" | "areacode">,
+): string {
+  return row.hospcode || row.areacode;
+}
+
+export function matchesFacilityFilter(
+  row: Pick<DashboardResultRow, "hospcode" | "areacode">,
+  selectedFacilities: readonly string[],
+): boolean {
+  return (
+    selectedFacilities.length === 0 ||
+    selectedFacilities.includes(
+      resultFacilityFilterKey(row),
+    )
+  );
+}
+
 /**
  * Canonical KPI type check.
  *

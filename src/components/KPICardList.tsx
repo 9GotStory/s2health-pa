@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { KPISummary, DashboardResultRow } from "@/lib/types";
-import { resolveKpiTarget } from "@/lib/kpi-utils";
+import { matchesFacilityFilter, resolveKpiTarget } from "@/lib/kpi-utils";
 import { partitionByCategory } from "@/lib/kpi-grouping";
 import { KPICard } from "./KPICard";
 import { KPIDetailModal } from "./KPIDetailModal";
@@ -47,11 +47,10 @@ export default function KPICardList({
     let modalTitle = "ภาพรวมอำเภอ";
 
     if (selectedFacilities.length > 0) {
-      // Filter result rows for these facilities. hospcode can be null
-      // (district-level rows) — those never match a selected facility.
-      modalData = kpi.data.filter(
-        (row) =>
-          row.hospcode !== null && selectedFacilities.includes(row.hospcode),
+      // Match the same hospcode-or-areacode breakdown key used by the model,
+      // including contract-valid rows without facility master metadata.
+      modalData = kpi.data.filter((row) =>
+        matchesFacilityFilter(row, selectedFacilities),
       );
       if (selectedFacilities.length === 1) {
         modalTitle = getFacilityName(selectedFacilities[0]);

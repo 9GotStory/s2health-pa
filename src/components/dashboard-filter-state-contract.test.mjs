@@ -10,6 +10,10 @@ const pageSource = fs.readFileSync(
   new URL("../app/page.tsx", import.meta.url),
   "utf8",
 );
+const cardListSource = fs.readFileSync(
+  new URL("./KPICardList.tsx", import.meta.url),
+  "utf8",
+);
 
 test("DashboardFilter exposes one atomic selection callback", () => {
   assert.match(
@@ -43,4 +47,17 @@ test("page maps one combined filter selection to one dashboard-state commit", ()
     pageSource,
     /onSelectionChange=\{\(\{ facilities, kpis \}\) =>\s*commitDashboardUrlState\(\{\s*\.\.\.dashboardViewState,\s*facilities,\s*kpis,/,
   );
+});
+
+
+test("facility filter domain includes dashboard breakdown keys, not registry metadata alone", () => {
+  assert.match(filterSource, /facilityKeys:\s*string\[\]/);
+  assert.match(filterSource, /facilityKeys\s*\.map\(\(code\)\s*=>/);
+  assert.match(pageSource, /collectFacilityFilterKeys\(data, hospitalMap\)/);
+  assert.match(pageSource, /facilities:\s*facilityFilterKeys/);
+  assert.match(pageSource, /facilityKeys=\{facilityFilterKeys\}/);
+});
+
+test("mobile drilldown matches the canonical hospcode-or-areacode filter key", () => {
+  assert.match(cardListSource, /matchesFacilityFilter\(row, selectedFacilities\)/);
 });

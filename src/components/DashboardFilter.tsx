@@ -22,6 +22,7 @@ export interface DashboardFilterSelection {
 
 interface DashboardFilterProps {
   hospitalMap: Record<string, { name: string; tambon_id: string }>;
+  facilityKeys: string[];
   kpiList: KPIMaster[];
   selectedFacilities: string[];
   selectedKPIs: string[];
@@ -30,6 +31,7 @@ interface DashboardFilterProps {
 
 export default function DashboardFilter({
   hospitalMap,
+  facilityKeys,
   kpiList,
   selectedFacilities,
   selectedKPIs,
@@ -41,16 +43,24 @@ export default function DashboardFilter({
   );
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Prepare Facility Options
+  // Prepare Facility Options. facilityKeys is the complete dashboard
+  // breakdown domain; hospitalMap only enriches keys that have master data.
   const facilityOptions = useMemo(() => {
-    return Object.entries(hospitalMap)
-      .map(([code, info]) => ({
-        value: code,
-        label: info.name.replace("โรงพยาบาลส่งเสริมสุขภาพตำบล", "รพ.สต."),
-        group: info.tambon_id,
-      }))
+    return facilityKeys
+      .map((code) => {
+        const info = hospitalMap[code];
+
+        return {
+          value: code,
+          label: (info?.name ?? code).replace(
+            "โรงพยาบาลส่งเสริมสุขภาพตำบล",
+            "รพ.สต.",
+          ),
+          group: info?.tambon_id ?? "",
+        };
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [hospitalMap]);
+  }, [facilityKeys, hospitalMap]);
 
   // Prepare KPI Options — grouped by category → subgroup. Entries keep
   // category/subgroup so the KPI tab can render sections; grouping fields

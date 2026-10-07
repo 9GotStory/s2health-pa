@@ -334,14 +334,25 @@ export default function KPITable({
       columnHelper.accessor("targetValue", {
         id: "target",
         header: "Target",
-        cell: (info) => (
-          <span className="text-xs">
-            ≥{info.getValue() || DEFAULT_TARGET}
-            <span className="block text-[9px] font-normal text-warning-600/80">
-              ({info.row.original.targetMonths} เดือน)
+        cell: (info) => {
+          const isRawCount = info.row.original.totalTarget === 0;
+
+          return isRawCount ? (
+            <span className="text-xs text-neutral-500">
+              —
+              <span className="block text-[9px] font-normal text-neutral-400">
+                แบบจำนวน
+              </span>
             </span>
-          </span>
-        ),
+          ) : (
+            <span className="text-xs">
+              ≥{info.getValue() || DEFAULT_TARGET}
+              <span className="block text-[9px] font-normal text-warning-600/80">
+                ({info.row.original.targetMonths} เดือน)
+              </span>
+            </span>
+          );
+        },
         meta: {
           // DISTINCT TARGET COLUMN -- SOLID BG + WALL EFFECT
           className:

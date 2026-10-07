@@ -301,6 +301,43 @@ a {
   color: white;
 }
 
+.filter-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf1f5;
+}
+
+.filter-context__text {
+  margin: 0;
+  color: #617186;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.filter-context__clear {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--brand-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.filter-context__clear:hover {
+  border-color: #a9cbd5;
+  background: var(--brand-soft);
+}
+
+.filter-context__clear[hidden] {
+  display: none;
+}
+
 .results-header {
   display: flex;
   align-items: end;
@@ -500,6 +537,16 @@ a {
 .badge--neutral {
   background: #f1f4f7;
   color: #65758a;
+}
+
+.badge--success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badge--attention {
+  background: var(--attention-soft);
+  color: var(--attention);
 }
 
 .badge--inverse {
@@ -711,6 +758,11 @@ a {
 
   .controls__grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-context {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .kpi-card__top {

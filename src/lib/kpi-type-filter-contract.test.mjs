@@ -57,3 +57,11 @@ test("Excel keeps percentage KPI type when filtered denominator is zero", () => 
     /isRawCount\s*\?\s*aggregate\.totalResult[\s\S]*?:\s*hasPercentageValue[\s\S]*?:\s*"—"/,
   );
 });
+
+
+test("facility cell styling treats raw-count zero targets as valid data", () => {
+  assert.match(
+    tableSource,
+    /const isRawCount = isRawCountKPI\(kpi\);[\s\S]*?if \(!facilityData\)[\s\S]*?if \(isRawCount\)[\s\S]*?if \(facilityData\.target === 0\)/,
+  );
+});

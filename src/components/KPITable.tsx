@@ -318,13 +318,19 @@ export default function KPITable({
               const facilityData = kpi.breakdown?.[key];
               const isRawCount = isRawCountKPI(kpi);
 
-              // No Data / Empty -> Gray
-              if (!facilityData || facilityData.target === 0) {
+              // Missing data is neutral. Raw-count KPIs are valid data
+              // even though their canonical denominator is zero.
+              if (!facilityData) {
                 return "p-0 text-center bg-neutral-50/50";
               }
 
               if (isRawCount) {
                 return "p-0 text-center bg-white hover:bg-neutral-100 cursor-pointer transition-colors border-r border-neutral-100/50";
+              }
+
+              // Percentage KPI with no denominator is unavailable.
+              if (facilityData.target === 0) {
+                return "p-0 text-center bg-neutral-50/50";
               }
 
               const fPass = facilityData.percentage >= targetVal;

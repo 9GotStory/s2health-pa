@@ -66,6 +66,9 @@ jobs:
       - name: Run dashboard data tests
         run: npm run test:dashboard
 
+      - name: Run raw-count KPI semantic tests
+        run: npm run test:kpi-semantics
+
       - name: Run accessibility contract tests
         run: node --test src/components/accessibility-contract.test.mjs
 

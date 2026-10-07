@@ -63,10 +63,6 @@ export default function Home() {
         ? parseDashboardUrlState(window.location.search)
         : { category: "", facilities: [], kpis: [] },
   );
-  const activeCategory = dashboardUrlState.category;
-  const selectedFacilities = dashboardUrlState.facilities;
-  const selectedKPIs = dashboardUrlState.kpis;
-
   const commitDashboardUrlState = (
     nextState: DashboardUrlState,
     mode: DashboardHistoryMode = "push",
@@ -75,6 +71,24 @@ export default function Home() {
     setDashboardUrlState(normalized);
     writeDashboardUrlState(normalized, mode);
   };
+
+  // Derive the valid dashboard state instead of synchronously rewriting React
+  // state from an effect. Before reference data is ready, keep the parsed URL
+  // state intact; once loaded, stale machine IDs are removed for rendering.
+  const validatedDashboardUrlState = useMemo(() => {
+    if (isLoading || dataset === null) {
+      return normalizeDashboardUrlState(dashboardUrlState);
+    }
+
+    return sanitizeDashboardUrlState(dashboardUrlState, {
+      categories: data.map((kpi) => kpi.category ?? "").filter(Boolean),
+      facilities: Object.keys(hospitalMap),
+      kpis: data.map((kpi) => kpi.tableName),
+    });
+  }, [dashboardUrlState, data, dataset, hospitalMap, isLoading]);
+
+  const selectedFacilities = validatedDashboardUrlState.facilities;
+  const selectedKPIs = validatedDashboardUrlState.kpis;
 
   // Categories follow the KPI-filtered slice so tab availability/counts
   // describe the same dataset as the summary and detail views.
@@ -94,12 +108,21 @@ export default function Home() {
       .map(([name]) => name);
   }, [data, selectedKPIs]);
 
-  // Derived guard: if the selected category no longer exists (data reload,
-  // registry edit), view falls back to ทั้งหมด without a state reset.
-  const currentCategory =
-    activeCategory && categories.length > 0 && !categories.includes(activeCategory)
-      ? ""
-      : activeCategory;
+  // Preserve the previous category fallback semantics while making the
+  // canonical view state the source used by rendering and future user actions.
+  const dashboardViewState = useMemo(
+    () => ({
+      ...validatedDashboardUrlState,
+      category:
+        validatedDashboardUrlState.category &&
+        categories.length > 0 &&
+        !categories.includes(validatedDashboardUrlState.category)
+          ? ""
+          : validatedDashboardUrlState.category,
+    }),
+    [categories, validatedDashboardUrlState],
+  );
+  const currentCategory = dashboardViewState.category;
 
   // Browser navigation is authoritative: back/forward restores the complete
   // dashboard view state without a reload.
@@ -145,44 +168,15 @@ export default function Home() {
     [data],
   );
 
-  // Once reference data is authoritative, drop stale/unknown URL values.
-  // Category validation first uses the full dataset; then the existing
-  // KPI-filtered category guard removes a category that is unavailable in
-  // the selected KPI slice. Canonicalization uses replaceState so cleanup
-  // does not create a misleading browser-history entry.
+  // Canonical URL cleanup is an external-system synchronization only.
+  // Rendering already uses dashboardViewState, so no synchronous setState is
+  // required here. replaceState avoids adding a misleading history entry.
   useEffect(() => {
     if (isLoading || dataset === null) return;
+    if (dashboardUrlStateEquals(dashboardViewState, dashboardUrlState)) return;
 
-    const fullCategories = data
-      .map((kpi) => kpi.category ?? "")
-      .filter(Boolean);
-    const sanitized = sanitizeDashboardUrlState(dashboardUrlState, {
-      categories: fullCategories,
-      facilities: Object.keys(hospitalMap),
-      kpis: data.map((kpi) => kpi.tableName),
-    });
-    const canonical = {
-      ...sanitized,
-      category:
-        sanitized.category &&
-        categories.length > 0 &&
-        !categories.includes(sanitized.category)
-          ? ""
-          : sanitized.category,
-    };
-
-    if (dashboardUrlStateEquals(canonical, dashboardUrlState)) return;
-
-    setDashboardUrlState(canonical);
-    writeDashboardUrlState(canonical, "replace");
-  }, [
-    categories,
-    dashboardUrlState,
-    data,
-    dataset,
-    hospitalMap,
-    isLoading,
-  ]);
+    writeDashboardUrlState(dashboardViewState, "replace");
+  }, [dashboardUrlState, dashboardViewState, dataset, isLoading]);
 
   if (isLoading) {
     return (
@@ -261,13 +255,13 @@ export default function Home() {
           selectedKPIs={selectedKPIs}
           onFacilitiesChange={(facilities) =>
             commitDashboardUrlState({
-              ...dashboardUrlState,
+              ...dashboardViewState,
               facilities,
             })
           }
           onKPIsChange={(kpis) =>
             commitDashboardUrlState({
-              ...dashboardUrlState,
+              ...dashboardViewState,
               kpis,
             })
           }
@@ -279,7 +273,7 @@ export default function Home() {
             <button
               onClick={() =>
                 commitDashboardUrlState({
-                  ...dashboardUrlState,
+                  ...dashboardViewState,
                   category: "",
                 })
               }
@@ -300,7 +294,7 @@ export default function Home() {
                   key={cat}
                   onClick={() =>
                     commitDashboardUrlState({
-                      ...dashboardUrlState,
+                      ...dashboardViewState,
                       category: cat,
                     })
                   }

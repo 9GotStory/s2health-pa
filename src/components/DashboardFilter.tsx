@@ -144,6 +144,9 @@ export default function DashboardFilter({
       {/* TRIGGER BUTTON (Mobile & Desktop) */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls="dashboard-filter-panel"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm border",
@@ -183,6 +186,7 @@ export default function DashboardFilter({
               </span>
             )}
             <button
+              type="button"
               onClick={() => {
                 onFacilitiesChange([]);
                 onKPIsChange([]);
@@ -197,6 +201,8 @@ export default function DashboardFilter({
 
       {/* EXPANDABLE PANEL */}
       <div
+        id="dashboard-filter-panel"
+        hidden={!isOpen}
         className={cn(
           "grid transition-all duration-300 ease-in-out",
           isOpen
@@ -207,8 +213,15 @@ export default function DashboardFilter({
         <div className="overflow-hidden">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row max-h-[70vh] md:max-h-[500px]">
             {/* SIDEBAR TABS */}
-            <div className="w-full md:w-48 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col shrink-0 overflow-x-auto">
+            <div
+              role="tablist"
+              aria-label="ประเภทตัวกรอง"
+              className="w-full md:w-48 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col shrink-0 overflow-x-auto"
+            >
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "facilities"}
                 onClick={() => {
                   setActiveTab("facilities");
                   setSearchQuery("");
@@ -229,6 +242,9 @@ export default function DashboardFilter({
                 )}
               </button>
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "kpis"}
                 onClick={() => {
                   setActiveTab("kpis");
                   setSearchQuery("");
@@ -258,6 +274,7 @@ export default function DashboardFilter({
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
+                    aria-label={`ค้นหา${activeTab === "facilities" ? "หน่วยบริการ" : "ตัวชี้วัด"}`}
                     placeholder={`ค้นหา${activeTab === "facilities" ? "หน่วยบริการ" : "ตัวชี้วัด"}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -265,6 +282,8 @@ export default function DashboardFilter({
                   />
                   {searchQuery && (
                     <button
+                      type="button"
+                      aria-label="ล้างคำค้นหา"
                       onClick={() => setSearchQuery("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     >
@@ -275,6 +294,7 @@ export default function DashboardFilter({
 
                 <div className="flex items-center gap-1 sm:gap-2 justify-end w-full sm:w-auto shrink-0">
                   <button
+                    type="button"
                     onClick={() => {
                       if (activeTab === "facilities") {
                         onFacilitiesChange(facilityOptions.map((f) => f.value));
@@ -288,6 +308,7 @@ export default function DashboardFilter({
                   </button>
                   <span className="text-slate-300 text-xs sm:text-sm">|</span>
                   <button
+                    type="button"
                     onClick={() => {
                       if (activeTab === "facilities") {
                         onFacilitiesChange([]);
@@ -312,11 +333,13 @@ export default function DashboardFilter({
                       </div>
                     ) : (
                       displayFacilities.map((f) => (
-                        <div
+                        <button
+                          type="button"
                           key={f.value}
+                          aria-pressed={selectedFacilities.includes(f.value)}
                           onClick={() => toggleFacility(f.value)}
                           className={cn(
-                            "flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border border-transparent hover:bg-slate-50",
+                            "w-full text-left flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border border-transparent hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
                             selectedFacilities.includes(f.value)
                               ? "bg-brand-50/50 border-brand-100"
                               : "",
@@ -337,7 +360,7 @@ export default function DashboardFilter({
                           <span className="text-xs sm:text-sm leading-tight text-slate-700 select-none">
                             {f.label}
                           </span>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -400,11 +423,13 @@ export default function DashboardFilter({
                                   </div>
                                 )}
                                 {sub.items.map((k) => (
-                                  <div
+                                  <button
+                                    type="button"
                                     key={k.value}
+                                    aria-pressed={selectedKPIs.includes(k.value)}
                                     onClick={() => toggleKPI(k.value)}
                                     className={cn(
-                                      "flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border border-transparent hover:bg-slate-50",
+                                      "w-full text-left flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border border-transparent hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
                                       selectedKPIs.includes(k.value)
                                         ? "bg-brand-50/50 border-brand-100"
                                         : "",
@@ -425,7 +450,7 @@ export default function DashboardFilter({
                                     <span className="text-xs sm:text-sm leading-relaxed text-slate-700 select-none">
                                       {k.label}
                                     </span>
-                                  </div>
+                                  </button>
                                 ))}
                               </div>
                             ))}

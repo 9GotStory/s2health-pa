@@ -22,51 +22,80 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
-      PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+      NEXT_PUBLIC_BASE_PATH: /s2health-pa
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Run dashboard unit tests
-        run: node --test test/*.test.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
 
-      - name: Validate dashboard module syntax
-        run: node --check site/js/*.js
-
-      - name: Enforce DOM injection boundary
+      - name: Validate public API configuration
+        shell: bash
         run: |
-          if grep -R -n -E '\\.(innerHTML|outerHTML)[[:space:]]*=' site/js; then
-            echo "Unsafe HTML assignment found"
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          value = os.environ.get("NEXT_PUBLIC_API_BASE_URL", "").strip().rstrip("/")
+          if not value:
+              raise SystemExit("PUBLIC_API_BASE_URL repository variable is required")
+
+          parsed = urlparse(value)
+          if (
+              parsed.scheme != "https"
+              or not parsed.netloc
+              or parsed.username
+              or parsed.password
+              or parsed.path not in ("", "/")
+              or parsed.params
+              or parsed.query
+              or parsed.fragment
+          ):
+              raise SystemExit("PUBLIC_API_BASE_URL must be an exact HTTPS origin")
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dashboard data tests
+        run: npm run test:dashboard
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build static export
+        run: npm run build
+
+      - name: Validate public export
+        shell: bash
+        run: |
+          test -f out/index.html
+          test -d out/_next
+          touch out/.nojekyll
+
+          if ! grep -R -Fq "$NEXT_PUBLIC_API_BASE_URL" out; then
+            echo 'Configured public API origin was not embedded in the client export'
+            exit 1
+          fi
+
+          if grep -R -n -F 'pa-dashboard-api:3001' out; then
+            echo 'Internal container API topology leaked into export'
             exit 1
           fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Generate runtime configuration
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          api_base_url = os.environ.get("PUBLIC_API_BASE_URL", "").strip().rstrip("/")
-          config = {
-              "apiBaseUrl": api_base_url,
-              "readinessPath": "/api/v1/health/ready",
-          }
-          payload = "window.S2HEALTH_CONFIG = " + json.dumps(
-              config, ensure_ascii=False, separators=(",", ":")
-          ) + ";\n"
-          Path("site/config.js").write_text(payload, encoding="utf-8")
-          PY
-
-      - name: Upload static site
+      - name: Upload static export
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: out
 
       - name: Deploy
         id: deployment

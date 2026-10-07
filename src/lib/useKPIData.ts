@@ -13,7 +13,7 @@ import {
 } from './dashboard-data';
 
 const RAW_API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\\/+$/, '') ?? '';
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, '') ?? '';
 
 function publicApiBaseUrl(): string {
   if (!RAW_API_BASE_URL) {

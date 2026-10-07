@@ -346,6 +346,14 @@ export function parseKpiCatalogResponse(value: unknown): PublicKpi[] {
       throw new Error('Field effectiveQuarter is out of range 1..4');
     }
 
+    const target =
+      record.target === null
+        ? null
+        : requireFiniteNumber(record, 'target');
+    if (target !== null && (target < 0 || target > 100)) {
+      throw new Error('Field target is out of range 0..100');
+    }
+
     const targetMonths =
       record.targetMonths === null
         ? null
@@ -357,10 +365,7 @@ export function parseKpiCatalogResponse(value: unknown): PublicKpi[] {
     return {
       key,
       title: requireNonblankString(record, 'title'),
-      target:
-        record.target === null
-          ? null
-          : requireFiniteNumber(record, 'target'),
+      target,
       order: requireInteger(record, 'order'),
       link: optionalString(record, 'link'),
       categoryCode: requireNonblankString(record, 'categoryCode'),

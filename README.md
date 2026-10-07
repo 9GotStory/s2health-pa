@@ -25,7 +25,7 @@ Current shared frontend authority:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
-- Source SHA: `7e2be80247b996fa2fd23d134433148061cb8506`
+- Source SHA: `5e2cb484e7e42ee393c8a1044d024c57f50643b6`
 
 The immutable Frontend Stabilization release baseline remains
 `a7df59805a405097d64268f0dfbc4538b3f7cbf3`; the authority above includes

@@ -1,6 +1,7 @@
 import writeExcelFile from "write-excel-file/browser";
 
 import type { KPISummary } from "./types";
+import { formatDashboardDate } from "./dashboard-time";
 import {
   computeAggregate,
   isRawCountKPI,
@@ -351,9 +352,9 @@ export async function exportToExcel(
   ];
 
   const date =
-    new Date()
-      .toISOString()
-      .split("T")[0];
+    formatDashboardDate(
+      new Date(),
+    );
 
   await writeExcelFile(
     sheetData,

@@ -10,7 +10,7 @@ maintaining a second independently designed dashboard implementation.
 
 - upstream repository: `9GotStory/pa-dashboard`
 - upstream branch: `develop`
-- imported source SHA: `80978fb7ed012cd716eae7a66ae31c7bdc59e7ba`
+- imported source SHA: `071503d7d874cb71becf1f91129da7a56dd72790`
 
 ## Shared surface
 
@@ -26,6 +26,7 @@ These areas are expected to stay conceptually aligned with upstream:
 - `src/components/KPICardList.tsx`
 - `src/components/KPIDetailModal.tsx`
 - `src/components/KPISummaryStats.tsx`
+- `src/components/kpi-summary-availability-contract.test.mjs`
 - `src/components/KPITable.tsx`
 - `src/components/accessibility-contract.test.mjs`
 - `src/components/ui/table.tsx`

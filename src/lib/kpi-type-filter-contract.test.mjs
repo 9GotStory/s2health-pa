@@ -18,11 +18,19 @@ const excelSource = fs.readFileSync(
   new URL("./excel-export.ts", import.meta.url),
   "utf8",
 );
+const utilsSource = fs.readFileSync(
+  new URL("./kpi-utils.ts", import.meta.url),
+  "utf8",
+);
 
 test("shared UI derives KPI type from canonical helper", () => {
   assert.match(cardSource, /isRawCountKPI\(kpi\)/);
   assert.match(tableSource, /isRawCountKPI\(kpi\)/);
-  assert.match(summarySource, /data\.filter\(isRawCountKPI\)\.length/);
+  assert.match(
+    summarySource,
+    /summarizeKPIEvaluations\(data, selectedFacilities\)/,
+  );
+  assert.match(utilsSource, /if \(isRawCountKPI\(kpi\)\)/);
   assert.match(excelSource, /isRawCountKPI\(kpi\)/);
 });
 

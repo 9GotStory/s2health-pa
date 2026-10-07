@@ -5,6 +5,7 @@ import {
   computeAggregate,
   evaluateKPI,
   isRawCountKPI,
+  summarizeKPIEvaluations,
 } from "./kpi-utils.ts";
 import type { KPISummary } from "./types";
 
@@ -152,4 +153,98 @@ test("canonical raw-count type does not change under facility filters", () => {
 
   assert.equal(isRawCountKPI(kpi), true);
   assert.equal(evaluateKPI(kpi, ["06413"]), "not-applicable");
+});
+
+
+test("summary evaluation reconciles pass, fail, raw-count, and unavailable percentage KPIs", () => {
+  const passing = summary({
+    title: "Passing",
+    percentage: 90,
+    totalResult: 90,
+    targetValue: 80,
+    breakdown: {
+      "06413": {
+        target: 50,
+        result: 45,
+        percentage: 90,
+      },
+    },
+  });
+  const failing = summary({
+    title: "Failing",
+    percentage: 70,
+    totalResult: 70,
+    targetValue: 80,
+    breakdown: {
+      "06413": {
+        target: 50,
+        result: 35,
+        percentage: 70,
+      },
+    },
+  });
+  const rawCount = summary({
+    title: "Raw count",
+    totalTarget: 0,
+    totalResult: 12,
+    percentage: 0,
+    targetValue: 0,
+  });
+  const unavailable = summary({
+    title: "Unavailable",
+    breakdown: {
+      "06413": {
+        target: 0,
+        result: 4,
+        percentage: 0,
+      },
+    },
+  });
+
+  assert.deepEqual(
+    summarizeKPIEvaluations(
+      [passing, failing, rawCount, unavailable],
+      ["06413"],
+    ),
+    {
+      total: 4,
+      evaluated: 2,
+      passed: 1,
+      failed: 1,
+      rawCount: 1,
+      unavailablePercentage: 1,
+      successRate: 50,
+    },
+  );
+});
+
+test("summary evaluation returns null success rate when no percentage KPI is evaluable", () => {
+  const rawCount = summary({
+    totalTarget: 0,
+    totalResult: 7,
+    percentage: 0,
+    targetValue: 0,
+  });
+  const unavailable = summary({
+    breakdown: {
+      "06413": {
+        target: 0,
+        result: 3,
+        percentage: 0,
+      },
+    },
+  });
+
+  assert.deepEqual(
+    summarizeKPIEvaluations([rawCount, unavailable], ["06413"]),
+    {
+      total: 2,
+      evaluated: 0,
+      passed: 0,
+      failed: 0,
+      rawCount: 1,
+      unavailablePercentage: 1,
+      successRate: null,
+    },
+  );
 });

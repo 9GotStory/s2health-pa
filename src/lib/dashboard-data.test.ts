@@ -583,6 +583,42 @@ test('R1-02 C: empty subgroup builds a valid presentation model with subgroup ""
   assert.equal(model.summaries[0].subgroup, '');
 });
 
+
+
+test('R1-03 A/B: catalog link accepts empty/null and absolute HTTP(S) URLs without rewriting', () => {
+  for (const link of [
+    null,
+    '',
+    'https://example.test/kpi?foo=1#section',
+    'http://example.test/detail',
+  ]) {
+    const parsed = parseKpiCatalogResponse({
+      kpis: [wireKpi({ link })],
+    });
+    assert.equal(parsed[0].link, link);
+  }
+});
+
+test('R1-03 C/D/E: catalog link rejects unsafe, relative, malformed, and padded URLs', () => {
+  for (const link of [
+    'javascript:alert(1)',
+    'data:text/html,<h1>x</h1>',
+    'file:///tmp/detail',
+    '/detail',
+    'detail/1',
+    'https://',
+    '   ',
+    ' https://example.test/kpi',
+    'https://example.test/kpi ',
+  ]) {
+    assert.throws(() =>
+      parseKpiCatalogResponse({
+        kpis: [wireKpi({ link })],
+      }),
+    );
+  }
+});
+
 test('R1-02 D/E: non-string non-null link and subgroup are still rejected', () => {
   for (const bad of [1, true, {}, []]) {
     assert.throws(() =>

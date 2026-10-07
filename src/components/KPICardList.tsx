@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { KPISummary, DashboardResultRow } from "@/lib/types";
-import { DEFAULT_TARGET } from "@/lib/kpi-utils";
+import { resolveKpiTarget } from "@/lib/kpi-utils";
 import { partitionByCategory } from "@/lib/kpi-grouping";
 import { KPICard } from "./KPICard";
 import { KPIDetailModal } from "./KPIDetailModal";
@@ -65,7 +65,7 @@ export default function KPICardList({
       title: kpi.title,
       facilityName: modalTitle,
       data: modalData,
-      targetValue: kpi.targetValue || DEFAULT_TARGET,
+      targetValue: resolveKpiTarget(kpi),
     });
   };
 

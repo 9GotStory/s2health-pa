@@ -157,7 +157,7 @@ test("model summary stats respect facility selection", () => {
   });
 });
 
-test("categories and search filters are presentation-only", () => {
+test("categories, search, and summary stats share the visible KPI slice", () => {
   const model = buildDashboardModel({
     dataset,
     facilities,
@@ -172,6 +172,25 @@ test("categories and search filters are presentation-only", () => {
       { code: "a", count: 1 },
       { code: "b", count: 1 },
     ],
+  );
+
+  const filtered = filterSummaries(model.summaries, {
+    categoryCode: "a",
+  });
+
+  assert.deepEqual(
+    filtered.map((summary) => summary.key),
+    ["annual"],
+  );
+
+  assert.deepEqual(
+    getDashboardStats(filtered, "06413"),
+    {
+      total: 1,
+      passed: 1,
+      attention: 0,
+      passRate: 100,
+    },
   );
 
   assert.deepEqual(

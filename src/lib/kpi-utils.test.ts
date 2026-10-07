@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   computeAggregate,
   evaluateKPI,
+  isRawCountKPI,
 } from "./kpi-utils.ts";
 import type { KPISummary } from "./types";
 
@@ -101,4 +102,54 @@ test("computeAggregate combines multiple selected facilities deterministically",
     totalResult: 80,
     percentage: 80,
   });
+});
+
+
+test("KPI type remains percentage when a selected facility has zero denominator", () => {
+  const kpi = summary({
+    breakdown: {
+      "06413": {
+        target: 0,
+        result: 12,
+        percentage: 0,
+      },
+      "06414": {
+        target: 100,
+        result: 80,
+        percentage: 80,
+      },
+    },
+  });
+
+  assert.equal(isRawCountKPI(kpi), false);
+  assert.deepEqual(computeAggregate(kpi, ["06413"]), {
+    totalTarget: 0,
+    totalResult: 12,
+    percentage: 0,
+  });
+  assert.equal(evaluateKPI(kpi, ["06413"]), "not-applicable");
+});
+
+test("canonical raw-count type does not change under facility filters", () => {
+  const kpi = summary({
+    totalTarget: 0,
+    totalResult: 12,
+    percentage: 0,
+    targetValue: 0,
+    breakdown: {
+      "06413": {
+        target: 0,
+        result: 7,
+        percentage: 0,
+      },
+      "06414": {
+        target: 0,
+        result: 5,
+        percentage: 0,
+      },
+    },
+  });
+
+  assert.equal(isRawCountKPI(kpi), true);
+  assert.equal(evaluateKPI(kpi, ["06413"]), "not-applicable");
 });

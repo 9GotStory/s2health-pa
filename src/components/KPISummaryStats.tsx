@@ -1,5 +1,5 @@
 import type { KPISummary } from "@/lib/types";
-import { evaluateKPI } from "@/lib/kpi-utils";
+import { evaluateKPI, isRawCountKPI } from "@/lib/kpi-utils";
 import { Target, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface KPISummaryStatsProps {
@@ -25,7 +25,7 @@ export default function KPISummaryStats({
   const failed = evaluations.filter(
     (evaluation) => evaluation === "fail",
   ).length;
-  const rawCount = total - evaluated;
+  const rawCount = data.filter(isRawCountKPI).length;
   const successRate = evaluated > 0 ? (passed / evaluated) * 100 : 0;
 
   return (

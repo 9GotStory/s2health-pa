@@ -10,6 +10,18 @@ export const DEFAULT_TARGET = 80;
 export type KPIEvaluation = "pass" | "fail" | "not-applicable";
 
 /**
+ * Canonical KPI type check.
+ *
+ * KPI type is defined by the unfiltered KPI aggregate from Backend v2 and
+ * must not change when a facility filter yields a zero denominator.
+ */
+export function isRawCountKPI(
+  kpi: Pick<KPISummary, "totalTarget">,
+): boolean {
+  return kpi.totalTarget === 0;
+}
+
+/**
  * Evaluate a KPI against its configured percentage target.
  *
  * Raw-count KPIs (totalTarget === 0) intentionally have no pass/fail
@@ -24,7 +36,7 @@ export function evaluateKPI(
     selectedFacilities,
   );
 
-  if (totalTarget === 0) {
+  if (isRawCountKPI(kpi) || totalTarget === 0) {
     return "not-applicable";
   }
 

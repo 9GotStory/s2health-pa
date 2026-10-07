@@ -15,13 +15,17 @@ import type { KPIMaster } from "@/lib/types";
 import { sortKpisByGroup } from "@/lib/kpi-grouping";
 import { cn } from "@/lib/utils";
 
+export interface DashboardFilterSelection {
+  facilities: string[];
+  kpis: string[];
+}
+
 interface DashboardFilterProps {
   hospitalMap: Record<string, { name: string; tambon_id: string }>;
   kpiList: KPIMaster[];
   selectedFacilities: string[];
   selectedKPIs: string[];
-  onFacilitiesChange: (selected: string[]) => void;
-  onKPIsChange: (selected: string[]) => void;
+  onSelectionChange: (selection: DashboardFilterSelection) => void;
 }
 
 export default function DashboardFilter({
@@ -29,8 +33,7 @@ export default function DashboardFilter({
   kpiList,
   selectedFacilities,
   selectedKPIs,
-  onFacilitiesChange,
-  onKPIsChange,
+  onSelectionChange,
 }: DashboardFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"facilities" | "kpis">(
@@ -120,20 +123,36 @@ export default function DashboardFilter({
       .filter((group) => group.subgroups.length > 0);
   }, [kpiGroups, searchQuery]);
 
-  // Handlers
+  // Every filter action emits one complete selection snapshot. This keeps
+  // combined actions atomic and guarantees at most one URL/history commit per
+  // user action in the controlled parent.
+  const updateFacilities = (facilities: string[]) => {
+    onSelectionChange({
+      facilities,
+      kpis: selectedKPIs,
+    });
+  };
+
+  const updateKPIs = (kpis: string[]) => {
+    onSelectionChange({
+      facilities: selectedFacilities,
+      kpis,
+    });
+  };
+
   const toggleFacility = (value: string) => {
     if (selectedFacilities.includes(value)) {
-      onFacilitiesChange(selectedFacilities.filter((v) => v !== value));
+      updateFacilities(selectedFacilities.filter((v) => v !== value));
     } else {
-      onFacilitiesChange([...selectedFacilities, value]);
+      updateFacilities([...selectedFacilities, value]);
     }
   };
 
   const toggleKPI = (value: string) => {
     if (selectedKPIs.includes(value)) {
-      onKPIsChange(selectedKPIs.filter((v) => v !== value));
+      updateKPIs(selectedKPIs.filter((v) => v !== value));
     } else {
-      onKPIsChange([...selectedKPIs, value]);
+      updateKPIs([...selectedKPIs, value]);
     }
   };
 
@@ -187,10 +206,12 @@ export default function DashboardFilter({
             )}
             <button
               type="button"
-              onClick={() => {
-                onFacilitiesChange([]);
-                onKPIsChange([]);
-              }}
+              onClick={() =>
+                onSelectionChange({
+                  facilities: [],
+                  kpis: [],
+                })
+              }
               className="text-[11px] text-slate-500 hover:text-error-600 hover:bg-error-50 px-2 py-1 rounded transition-colors ml-1"
             >
               ล้างทั้งหมด
@@ -297,9 +318,9 @@ export default function DashboardFilter({
                     type="button"
                     onClick={() => {
                       if (activeTab === "facilities") {
-                        onFacilitiesChange(facilityOptions.map((f) => f.value));
+                        updateFacilities(facilityOptions.map((f) => f.value));
                       } else {
-                        onKPIsChange(kpiOptions.map((k) => k.value));
+                        updateKPIs(kpiOptions.map((k) => k.value));
                       }
                     }}
                     className="text-[12px] sm:text-[13px] font-medium text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-2 py-1.5 rounded transition-colors"
@@ -311,9 +332,9 @@ export default function DashboardFilter({
                     type="button"
                     onClick={() => {
                       if (activeTab === "facilities") {
-                        onFacilitiesChange([]);
+                        updateFacilities([]);
                       } else {
-                        onKPIsChange([]);
+                        updateKPIs([]);
                       }
                     }}
                     className="text-[12px] sm:text-[13px] font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 py-1.5 rounded transition-colors"
@@ -397,12 +418,12 @@ export default function DashboardFilter({
                                   type="button"
                                   onClick={() =>
                                     allSelected
-                                      ? onKPIsChange(
+                                      ? updateKPIs(
                                           selectedKPIs.filter(
                                             (v) => !categoryValues.includes(v),
                                           ),
                                         )
-                                      : onKPIsChange([
+                                      : updateKPIs([
                                           ...new Set([
                                             ...selectedKPIs,
                                             ...categoryValues,

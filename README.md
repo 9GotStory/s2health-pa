@@ -25,7 +25,7 @@ Current shared frontend authority:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
-- Source SHA: `893603b32415cb06fab2c331acef575e8128cd75`
+- Source SHA: `b79f3745d5f6331b31dd7783bf79b75d05a3f364`
 
 The immutable Frontend Stabilization release baseline remains
 `a7df59805a405097d64268f0dfbc4538b3f7cbf3`; the authority above includes
@@ -85,6 +85,7 @@ npm ci
 npm run test:dashboard
 npm run test:kpi-semantics
 npm run test:url-state
+npm run test:excel-export
 node --test src/components/accessibility-contract.test.mjs
 npm run lint
 npm run dev

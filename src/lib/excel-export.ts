@@ -2,6 +2,7 @@ import writeExcelFile from "write-excel-file/browser";
 
 import type { KPISummary } from "./types";
 import {
+  computeAggregate,
   DEFAULT_TARGET,
   roundPct,
 } from "./kpi-utils";
@@ -151,6 +152,7 @@ export async function exportToExcel(
 
   facilityKeys: string[],
   fiscalYear: number,
+  selectedFacilities: string[] = [],
 ) {
   const staticColumns = [
     {
@@ -212,18 +214,24 @@ export async function exportToExcel(
   const rows: ExcelRow[] =
     data.map(
       (kpi, index) => {
+        const aggregate = computeAggregate(
+          kpi,
+          selectedFacilities,
+        );
         const isRawCount =
           kpi.totalTarget === 0;
+        const aggregateShowsCount =
+          aggregate.totalTarget === 0;
 
         const targetValue =
           kpi.targetValue ||
           DEFAULT_TARGET;
 
         const resultValue =
-          isRawCount
-            ? kpi.totalResult
+          aggregateShowsCount
+            ? aggregate.totalResult
             : roundPct(
-                kpi.percentage,
+                aggregate.percentage,
               );
 
         const row: ExcelRow = [
@@ -258,7 +266,7 @@ export async function exportToExcel(
           createCell(
             resultValue,
 
-            isRawCount
+            aggregateShowsCount
               ? {
                   align:
                     "center",
@@ -267,7 +275,7 @@ export async function exportToExcel(
                     "center",
                 }
               : createResultStyle(
-                  kpi.percentage >=
+                  aggregate.percentage >=
                     targetValue,
                 ),
           ),

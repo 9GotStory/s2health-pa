@@ -53,7 +53,11 @@ export function KPICard({
         name: hospitalMap[code]?.name || code,
         ...stats,
       }))
-      .sort((a, b) => b.percentage - a.percentage); // Sort by % Desc
+      .sort((a, b) =>
+        isRawCount
+          ? b.result - a.result
+          : b.percentage - a.percentage,
+      );
   })();
 
   const handleExpand = (e: MouseEvent) => {
@@ -175,12 +179,14 @@ export function KPICard({
                 <tr>
                   <th className="py-2 text-left w-[60%]">หน่วยบริการ</th>
                   <th className="py-2 text-right">ผลงาน</th>
-                  <th className="py-2 text-right">%</th>
+                  <th className="py-2 text-right">
+                    {isRawCount ? "—" : "%"}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200/50">
                 {topFacilities.map((fac) => {
-                  const facPass = fac.percentage >= targetVal;
+                  const facPass = !isRawCount && fac.percentage >= targetVal;
                   return (
                     <tr key={fac.code}>
                       <td className="py-2 pr-2 text-neutral-700 truncate max-w-[150px]">
@@ -190,9 +196,13 @@ export function KPICard({
                         {fac.result.toLocaleString()}
                       </td>
                       <td
-                        className={`py-2 text-right font-bold ${facPass ? "text-success-600" : "text-error-600"}`}
+                        className={
+                          isRawCount
+                            ? "py-2 text-right font-medium text-neutral-400"
+                            : `py-2 text-right font-bold ${facPass ? "text-success-600" : "text-error-600"}`
+                        }
                       >
-                        {formatPct(fac.percentage)}%
+                        {isRawCount ? "—" : `${formatPct(fac.percentage)}%`}
                       </td>
                     </tr>
                   );

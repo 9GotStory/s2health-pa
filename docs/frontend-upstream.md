@@ -10,7 +10,7 @@ maintaining a second independently designed dashboard implementation.
 
 - upstream repository: `9GotStory/pa-dashboard`
 - upstream branch: `develop`
-- imported source SHA: `893603b32415cb06fab2c331acef575e8128cd75`
+- imported source SHA: `b79f3745d5f6331b31dd7783bf79b75d05a3f364`
 
 ## Shared surface
 
@@ -33,6 +33,7 @@ These areas are expected to stay conceptually aligned with upstream:
 - `src/lib/dashboard-url-state.ts`
 - `src/lib/dashboard-url-state.test.ts`
 - `src/lib/excel-export.ts`
+- `src/lib/excel-export-contract.test.mjs`
 - `src/lib/kpi-grouping.ts`
 - `src/lib/kpi-utils.ts`
 - `src/lib/kpi-utils.test.ts`

@@ -1,6 +1,11 @@
 import { useState, type MouseEvent } from "react";
 import type { KPISummary } from "@/lib/types";
-import { computeAggregate, DEFAULT_TARGET, formatPct } from "@/lib/kpi-utils";
+import {
+  computeAggregate,
+  DEFAULT_TARGET,
+  evaluateKPI,
+  formatPct,
+} from "@/lib/kpi-utils";
 import {
   ExternalLink,
   Calendar,
@@ -32,7 +37,8 @@ export function KPICard({
 
   const isRawCount = totalTarget === 0;
   const targetVal = kpi.targetValue || DEFAULT_TARGET;
-  const isPass = percentage >= targetVal;
+  const evaluation = evaluateKPI(kpi, selectedFacilities);
+  const isPass = evaluation === "pass";
 
   const period = kpi.period;
   const isQuarter = period && period.includes("(Q");
@@ -112,10 +118,20 @@ export function KPICard({
           {/* Pass/Fail Indicator Icon */}
           <div
             aria-hidden="true"
-            className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${isPass ? "bg-success-500" : "bg-error-500"}`}
+            className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${
+              evaluation === "not-applicable"
+                ? "bg-neutral-400"
+                : isPass
+                  ? "bg-success-500"
+                  : "bg-error-500"
+            }`}
           />
           <span className="sr-only">
-            {isPass ? "ผ่านเกณฑ์" : "ต้องปรับปรุง"}
+            {evaluation === "not-applicable"
+              ? "ตัวชี้วัดแบบจำนวน ไม่ประเมินผ่านหรือไม่ผ่าน"
+              : isPass
+                ? "ผ่านเกณฑ์"
+                : "ต้องปรับปรุง"}
           </span>
         </div>
 
@@ -127,7 +143,13 @@ export function KPICard({
             </p>
             <div className="flex items-baseline gap-1.5">
               <span
-                className={`text-2xl font-bold font-prompt ${isPass ? "text-success-600" : "text-error-600"}`}
+                className={`text-2xl font-bold font-prompt ${
+                  isRawCount
+                    ? "text-neutral-700"
+                    : isPass
+                      ? "text-success-600"
+                      : "text-error-600"
+                }`}
               >
                 {isRawCount
                   ? totalResult.toLocaleString()
@@ -140,17 +162,30 @@ export function KPICard({
           </div>
 
           <div className="text-right">
-            <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wide">
-              Target ≥ {targetVal}{" "}
-              <span className="normal-case tracking-normal">
-                ({kpi.targetMonths} เดือน)
-              </span>
-            </p>
-            <div className="text-xs text-neutral-600 mt-0.5 font-medium flex items-center justify-end gap-1">
-              <span>R: {totalResult.toLocaleString()}</span>
-              <span className="text-neutral-300">/</span>
-              <span>T: {totalTarget.toLocaleString()}</span>
-            </div>
+            {isRawCount ? (
+              <>
+                <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wide">
+                  ตัวชี้วัดแบบจำนวน
+                </p>
+                <div className="text-xs text-neutral-600 mt-0.5 font-medium">
+                  ผลงาน: {totalResult.toLocaleString()}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wide">
+                  Target ≥ {targetVal}{" "}
+                  <span className="normal-case tracking-normal">
+                    ({kpi.targetMonths} เดือน)
+                  </span>
+                </p>
+                <div className="text-xs text-neutral-600 mt-0.5 font-medium flex items-center justify-end gap-1">
+                  <span>R: {totalResult.toLocaleString()}</span>
+                  <span className="text-neutral-300">/</span>
+                  <span>T: {totalTarget.toLocaleString()}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

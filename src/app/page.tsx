@@ -244,6 +244,7 @@ export default function Home() {
             tambonMap={tambonMap}
             selectedFacilities={selectedFacilities}
             lastUpdated={lastUpdated}
+            fiscalYear={dataset.fiscalYear}
           />
         </div>
 

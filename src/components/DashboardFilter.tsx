@@ -102,6 +102,24 @@ export default function DashboardFilter({
     f.label.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  const displayKpiGroups = useMemo(() => {
+    const normalizedQuery = searchQuery.toLowerCase();
+
+    return kpiGroups
+      .map((group) => ({
+        ...group,
+        subgroups: group.subgroups
+          .map((subgroup) => ({
+            ...subgroup,
+            items: subgroup.items.filter((kpi) =>
+              kpi.label.toLowerCase().includes(normalizedQuery),
+            ),
+          }))
+          .filter((subgroup) => subgroup.items.length > 0),
+      }))
+      .filter((group) => group.subgroups.length > 0);
+  }, [kpiGroups, searchQuery]);
+
   // Handlers
   const toggleFacility = (value: string) => {
     if (selectedFacilities.includes(value)) {
@@ -327,28 +345,13 @@ export default function DashboardFilter({
 
                 {activeTab === "kpis" && (
                   <div className="flex flex-col gap-1 p-2">
-                    {kpiGroups.length === 0 ||
-                    kpiGroups.every((g) =>
-                      g.subgroups.every((s) => s.items.length === 0),
-                    ) ? (
+                    {displayKpiGroups.length === 0 ? (
                       <div className="py-10 text-center text-slate-500 text-sm">
                         ไม่พบข้อมูลที่ค้นหา
                       </div>
                     ) : (
-                      kpiGroups.map((group) => {
-                        // Search-aware view: filter subgroup items; a group
-                        // with no surviving items is hidden entirely.
-                        const subs = group.subgroups
-                          .map((s) => ({
-                            ...s,
-                            items: s.items.filter((k) =>
-                              k.label
-                                .toLowerCase()
-                                .includes(searchQuery.toLowerCase()),
-                            ),
-                          }))
-                          .filter((s) => s.items.length > 0);
-                        if (subs.length === 0) return null;
+                      displayKpiGroups.map((group) => {
+                        const subs = group.subgroups;
 
                         const categoryValues = subs.flatMap((s) =>
                           s.items.map((k) => k.value),

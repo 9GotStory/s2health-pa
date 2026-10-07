@@ -51,6 +51,7 @@ interface KPITableProps {
   tambonMap?: Record<string, string>;
   selectedFacilities?: string[];
   lastUpdated?: string;
+  fiscalYear: number;
 }
 
 export default function KPITable({
@@ -59,6 +60,7 @@ export default function KPITable({
   tambonMap = {},
   selectedFacilities = [],
   lastUpdated = "",
+  fiscalYear,
 }: KPITableProps) {
   // Modal State
   const [modalState, setModalState] = useState<{
@@ -377,10 +379,10 @@ export default function KPITable({
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      await exportToExcel(data, hospitalMap, facilityKeys);
+      await exportToExcel(data, hospitalMap, facilityKeys, fiscalYear);
     } catch (err) {
       console.error("Export failed", err);
-      toast.error("Export failed. Please try again.");
+      toast.error("ส่งออก Excel ไม่สำเร็จ กรุณาลองอีกครั้ง");
     } finally {
       setIsExporting(false);
     }
@@ -405,12 +407,12 @@ export default function KPITable({
           >
             {isExporting ? (
               <>
-                <span className="hidden md:inline">Exporting...</span>
+                <span className="hidden md:inline">กำลังส่งออก...</span>
               </>
             ) : (
               <>
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden md:inline">Export Excel</span>
+                <span className="hidden md:inline">ส่งออก Excel</span>
               </>
             )}
           </button>

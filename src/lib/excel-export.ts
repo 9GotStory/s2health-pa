@@ -150,6 +150,7 @@ export async function exportToExcel(
   >,
 
   facilityKeys: string[],
+  fiscalYear: number,
 ) {
   const staticColumns = [
     {
@@ -345,11 +346,11 @@ export async function exportToExcel(
     sheetData,
     {
       sheet:
-        "PA Dashboard 2569",
+        `PA Dashboard ${fiscalYear}`,
 
       columns,
     },
   ).toFile(
-    `pa-dashboard-${date}.xlsx`,
+    `pa-dashboard-${fiscalYear}-${date}.xlsx`,
   );
 }

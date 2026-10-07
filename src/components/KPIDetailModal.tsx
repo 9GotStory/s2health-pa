@@ -68,6 +68,7 @@ export function KPIDetailModal({
           </div>
           <button 
             onClick={onClose}
+            aria-label="ปิดหน้าต่างรายละเอียด"
             className="p-1.5 md:p-2 hover:bg-neutral-200 rounded-full transition-colors text-neutral-500 hover:text-neutral-700 shrink-0"
           >
             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,9 +82,9 @@ export function KPIDetailModal({
           <table className="w-full text-sm text-left relative">
             <thead className="bg-neutral-50/95 backdrop-blur text-neutral-500 font-semibold sticky top-0 shadow-sm z-10 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-3 py-2 md:px-6 md:py-3 border-b text-left whitespace-nowrap">Sub-district</th>
-                <th className="px-2 py-2 md:px-6 md:py-3 border-b text-right whitespace-nowrap">Target</th>
-                <th className="px-2 py-2 md:px-6 md:py-3 border-b text-right whitespace-nowrap">Result</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 border-b text-left whitespace-nowrap">พื้นที่</th>
+                <th className="px-2 py-2 md:px-6 md:py-3 border-b text-right whitespace-nowrap">เป้าหมาย</th>
+                <th className="px-2 py-2 md:px-6 md:py-3 border-b text-right whitespace-nowrap">ผลงาน</th>
                 <th className="px-2 py-2 md:px-6 md:py-3 border-b text-center whitespace-nowrap">%</th>
               </tr>
             </thead>
@@ -128,7 +129,7 @@ export function KPIDetailModal({
               {data.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 md:px-6 md:py-12 text-center text-neutral-400 italic">
-                    No detailed records found for this facility.
+                    ไม่พบข้อมูลรายละเอียดของหน่วยบริการนี้
                   </td>
                 </tr>
               )}
@@ -138,8 +139,8 @@ export function KPIDetailModal({
         
         {/* Footer */}
         <div className="bg-neutral-50 px-4 py-2 md:px-6 md:py-3 border-t border-neutral-200 text-xs text-neutral-500 flex justify-between shrink-0">
-           <span>Total: {data.length}</span>
-           <span>T: {fmt(totalT)} | R: {fmt(totalR)}</span>
+           <span>จำนวนรายการ: {data.length}</span>
+           <span>เป้าหมาย: {fmt(totalT)} | ผลงาน: {fmt(totalR)}</span>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   serializeDashboardUrlState,
   type DashboardUrlState,
 } from "@/lib/dashboard-url-state";
+import { collectFacilityFilterKeys } from "@/lib/kpi-utils";
 import type { KPIMaster } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,14 @@ export default function Home() {
     lastUpdated,
   } = useKPIData();
 
+  // The facility filter domain is the union of reference metadata and every
+  // breakdown key actually present in the active dashboard model. Backend v2
+  // permits non-registry hospcodes and areacode fallback buckets.
+  const facilityFilterKeys = useMemo(
+    () => collectFacilityFilterKeys(data, hospitalMap),
+    [data, hospitalMap],
+  );
+
   // Shareable dashboard view state. Category keeps the existing ?cat=
   // contract; facility/KPI selections use repeated stable machine IDs.
   // Lazy initialization is safe under SSR because filtered content renders
@@ -82,10 +91,10 @@ export default function Home() {
 
     return sanitizeDashboardUrlState(dashboardUrlState, {
       categories: data.map((kpi) => kpi.category ?? "").filter(Boolean),
-      facilities: Object.keys(hospitalMap),
+      facilities: facilityFilterKeys,
       kpis: data.map((kpi) => kpi.tableName),
     });
-  }, [dashboardUrlState, data, dataset, hospitalMap, isLoading]);
+  }, [dashboardUrlState, data, dataset, facilityFilterKeys, isLoading]);
 
   const selectedFacilities = validatedDashboardUrlState.facilities;
   const selectedKPIs = validatedDashboardUrlState.kpis;
@@ -250,6 +259,7 @@ export default function Home() {
         {/* MULTI-CHECKBOX FILTER */}
         <DashboardFilter
           hospitalMap={hospitalMap}
+          facilityKeys={facilityFilterKeys}
           kpiList={dynamicKPIList}
           selectedFacilities={selectedFacilities}
           selectedKPIs={selectedKPIs}

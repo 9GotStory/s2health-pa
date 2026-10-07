@@ -108,7 +108,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50/50 font-[family-name:var(--font-geist-sans)]">
+      <main className="min-h-screen bg-slate-50/50 font-sans">
         <div className="w-[98%] max-w-none mx-auto px-2 md:px-4 pb-12">
           <DashboardSkeleton />
         </div>
@@ -118,7 +118,7 @@ export default function Home() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-slate-50/50 font-[family-name:var(--font-geist-sans)]">
+      <main className="min-h-screen bg-slate-50/50 font-sans">
         <div className="w-[98%] max-w-none mx-auto px-2 md:px-4 pb-12">
           <div className="mt-20 text-center">
             <p className="text-error-600 font-medium">{error}</p>
@@ -138,7 +138,7 @@ export default function Home() {
   // a connection error or stale cache. No KPI tables/cards, no success toast.
   if (dataset === null) {
     return (
-      <main className="min-h-screen bg-slate-50/50 font-[family-name:var(--font-geist-sans)]">
+      <main className="min-h-screen bg-slate-50/50 font-sans">
         <div className="w-[98%] max-w-none mx-auto px-2 md:px-4 pb-12">
           <div className="mt-20 text-center">
             <p className="text-slate-500 font-medium font-prompt">
@@ -151,7 +151,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50/50 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen bg-slate-50/50 font-sans">
       <div className="w-[98%] max-w-none mx-auto px-2 md:px-4 pb-12">
         <DataStatusNotifier recordCount={data.length} />
 
@@ -159,10 +159,10 @@ export default function Home() {
         <div className="mt-6 mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-3 text-center md:text-left">
           <div>
             <h1 className="text-2xl font-bold text-brand-700 font-prompt tracking-tight">
-              PA Dashboard
+              S2Health PA Dashboard
             </h1>
             <p className="text-slate-500 text-sm font-medium mt-0.5">
-              คณะกรรมการประสานงานสาธารณสุขระดับอำเภอสอง
+              เครือข่ายสุขภาพอำเภอสอง จังหวัดแพร่
             </p>
           </div>
           <div className="flex justify-center md:justify-end opacity-80 hover:opacity-100 transition-opacity">

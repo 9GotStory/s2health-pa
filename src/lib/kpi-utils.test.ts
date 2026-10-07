@@ -6,6 +6,7 @@ import {
   computeAggregate,
   DEFAULT_TARGET,
   evaluateKPI,
+  formatDashboardAreaLabel,
   isRawCountKPI,
   matchesFacilityFilter,
   resolveKpiTarget,
@@ -352,5 +353,37 @@ test("facility row matching uses hospcode first and areacode when hospcode is nu
       ["54069999"],
     ),
     false,
+  );
+});
+
+
+test("dashboard area label preserves raw code when geographic metadata is unavailable", () => {
+  const tambons = {
+    "540601": "บ้านหนุน",
+  };
+
+  assert.equal(
+    formatDashboardAreaLabel("54060101", tambons),
+    "ต.บ้านหนุน ม.1",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("540601", tambons),
+    "ต.บ้านหนุน",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("54069999", tambons),
+    "54069999",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("5406", tambons),
+    "5406",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("540601AB", tambons),
+    "540601AB",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("", tambons),
+    "-",
   );
 });

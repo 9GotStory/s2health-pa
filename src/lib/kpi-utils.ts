@@ -7,6 +7,31 @@ import type { KPISummary, DashboardResultRow } from "./types";
  */
 export const DEFAULT_TARGET = 80;
 
+export type KPIEvaluation = "pass" | "fail" | "not-applicable";
+
+/**
+ * Evaluate a KPI against its configured percentage target.
+ *
+ * Raw-count KPIs (totalTarget === 0) intentionally have no pass/fail
+ * semantics; they only report result counts.
+ */
+export function evaluateKPI(
+  kpi: KPISummary,
+  selectedFacilities: string[] = [],
+): KPIEvaluation {
+  const { totalTarget, percentage } = computeAggregate(
+    kpi,
+    selectedFacilities,
+  );
+
+  if (totalTarget === 0) {
+    return "not-applicable";
+  }
+
+  const target = kpi.targetValue || DEFAULT_TARGET;
+  return percentage >= target ? "pass" : "fail";
+}
+
 export interface KPIValue {
   t: number;
   r: number;

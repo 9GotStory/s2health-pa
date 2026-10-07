@@ -4,6 +4,7 @@ import type { KPISummary } from "./types";
 import {
   computeAggregate,
   DEFAULT_TARGET,
+  isRawCountKPI,
   roundPct,
 } from "./kpi-utils";
 
@@ -219,20 +220,23 @@ export async function exportToExcel(
           selectedFacilities,
         );
         const isRawCount =
-          kpi.totalTarget === 0;
-        const aggregateShowsCount =
-          aggregate.totalTarget === 0;
+          isRawCountKPI(kpi);
+        const hasPercentageValue =
+          !isRawCount &&
+          aggregate.totalTarget > 0;
 
         const targetValue =
           kpi.targetValue ||
           DEFAULT_TARGET;
 
         const resultValue =
-          aggregateShowsCount
+          isRawCount
             ? aggregate.totalResult
-            : roundPct(
-                aggregate.percentage,
-              );
+            : hasPercentageValue
+              ? roundPct(
+                  aggregate.percentage,
+                )
+              : "—";
 
         const row: ExcelRow = [
           createCell(
@@ -266,7 +270,7 @@ export async function exportToExcel(
           createCell(
             resultValue,
 
-            aggregateShowsCount
+            isRawCount || !hasPercentageValue
               ? {
                   align:
                     "center",

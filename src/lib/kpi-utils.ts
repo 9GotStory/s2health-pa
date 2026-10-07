@@ -46,6 +46,10 @@ export function formatDashboardAreaLabel(
     return areacode;
   }
 
+  if (areacode.length === 6) {
+    return `ต.${tambonName}`;
+  }
+
   if (areacode.length === 8) {
     const villageCode =
       areacode.slice(6, 8);
@@ -57,7 +61,7 @@ export function formatDashboardAreaLabel(
     return `ต.${tambonName} ม.${Number(villageCode)}`;
   }
 
-  return `ต.${tambonName}`;
+  return areacode;
 }
 
 export interface FacilityFilterDetail {

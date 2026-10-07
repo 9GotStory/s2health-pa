@@ -379,7 +379,7 @@ export default function KPITable({
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      await exportToExcel(data, hospitalMap, facilityKeys, fiscalYear);
+      await exportToExcel(data, hospitalMap, displayConfigKeys, fiscalYear);
     } catch (err) {
       console.error("Export failed", err);
       toast.error("ส่งออก Excel ไม่สำเร็จ กรุณาลองอีกครั้ง");

@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-[family-name:var(--font-geist-sans)]">
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
       <div className="max-w-[1600px] mx-auto space-y-6">
         
         {/* Header Skeleton */}

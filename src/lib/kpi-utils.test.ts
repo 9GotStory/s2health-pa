@@ -383,6 +383,14 @@ test("dashboard area label preserves raw code when geographic metadata is unavai
     "540601AB",
   );
   assert.equal(
+    formatDashboardAreaLabel("5406010", tambons),
+    "5406010",
+  );
+  assert.equal(
+    formatDashboardAreaLabel("540601001", tambons),
+    "540601001",
+  );
+  assert.equal(
     formatDashboardAreaLabel("", tambons),
     "-",
   );

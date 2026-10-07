@@ -1,5 +1,5 @@
 import type { KPISummary } from "@/lib/types";
-import { computeAggregate, DEFAULT_TARGET } from "@/lib/kpi-utils";
+import { evaluateKPI } from "@/lib/kpi-utils";
 import { Target, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface KPISummaryStatsProps {
@@ -13,15 +13,20 @@ export default function KPISummaryStats({
 }: KPISummaryStatsProps) {
   const total = data.length;
 
-  // Calculate Passed/Failed based on Selected Facilities (shared logic)
-  const passed = data.filter((kpi) => {
-    const { percentage } = computeAggregate(kpi, selectedFacilities);
-    const target = kpi.targetValue || DEFAULT_TARGET;
-    return percentage >= target;
-  }).length;
-
-  const failed = total - passed;
-  const successRate = total > 0 ? (passed / total) * 100 : 0;
+  const evaluations = data.map((kpi) =>
+    evaluateKPI(kpi, selectedFacilities),
+  );
+  const evaluated = evaluations.filter(
+    (evaluation) => evaluation !== "not-applicable",
+  ).length;
+  const passed = evaluations.filter(
+    (evaluation) => evaluation === "pass",
+  ).length;
+  const failed = evaluations.filter(
+    (evaluation) => evaluation === "fail",
+  ).length;
+  const rawCount = total - evaluated;
+  const successRate = evaluated > 0 ? (passed / evaluated) * 100 : 0;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -37,6 +42,11 @@ export default function KPISummaryStats({
           <p className="text-2xl font-bold text-neutral-800 font-prompt">
             {total}
           </p>
+          {rawCount > 0 && (
+            <p className="text-[10px] text-neutral-400 mt-0.5">
+              {rawCount} ตัวเป็นแบบจำนวน
+            </p>
+          )}
         </div>
       </div>
 
@@ -51,6 +61,9 @@ export default function KPISummaryStats({
           </p>
           <p className="text-2xl font-bold text-accent-700 font-prompt">
             {successRate.toFixed(1)}%
+          </p>
+          <p className="text-[10px] text-neutral-400 mt-0.5">
+            จาก {evaluated} ตัวที่มีเกณฑ์ประเมิน
           </p>
         </div>
       </div>

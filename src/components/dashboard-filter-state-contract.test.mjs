@@ -14,6 +14,10 @@ const cardListSource = fs.readFileSync(
   new URL("./KPICardList.tsx", import.meta.url),
   "utf8",
 );
+const tableSource = fs.readFileSync(
+  new URL("./KPITable.tsx", import.meta.url),
+  "utf8",
+);
 
 test("DashboardFilter exposes one atomic selection callback", () => {
   assert.match(
@@ -60,4 +64,13 @@ test("facility filter domain includes dashboard breakdown keys, not registry met
 
 test("mobile drilldown matches the canonical hospcode-or-areacode filter key", () => {
   assert.match(cardListSource, /matchesFacilityFilter\(row, selectedFacilities\)/);
+});
+
+
+test("desktop drilldown matches the canonical hospcode-or-areacode filter key", () => {
+  assert.match(tableSource, /matchesFacilityFilter\(row, \[facilityKey\]\)/);
+  assert.doesNotMatch(
+    tableSource,
+    /d\.hospcode === facilityKey \|\| d\.areacode === facilityKey/,
+  );
 });

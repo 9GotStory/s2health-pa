@@ -19,6 +19,47 @@ export function resolveKpiTarget(
 
 export type KPIEvaluation = "pass" | "fail" | "not-applicable";
 
+/**
+ * Format one dashboard result areacode without inventing geographic metadata.
+ *
+ * Known 6-digit tambon prefixes use the reference name. An 8-digit numeric
+ * code additionally renders the village suffix. When the reference metadata
+ * is unavailable, or an 8-character suffix is not numeric, preserve the raw
+ * code so the UI never fabricates an incomplete/NaN location label.
+ */
+export function formatDashboardAreaLabel(
+  areacode: string,
+  tambonMap: Readonly<Record<string, string>>,
+): string {
+  if (areacode.length === 0) {
+    return "-";
+  }
+
+  if (areacode.length < 6) {
+    return areacode;
+  }
+
+  const tambonName =
+    tambonMap[areacode.slice(0, 6)];
+
+  if (!tambonName) {
+    return areacode;
+  }
+
+  if (areacode.length === 8) {
+    const villageCode =
+      areacode.slice(6, 8);
+
+    if (!/^\d{2}$/.test(villageCode)) {
+      return areacode;
+    }
+
+    return `ต.${tambonName} ม.${Number(villageCode)}`;
+  }
+
+  return `ต.${tambonName}`;
+}
+
 export interface FacilityFilterDetail {
   readonly name: string;
   readonly tambon_id: string;

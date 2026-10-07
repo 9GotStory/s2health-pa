@@ -2,7 +2,11 @@
 
 import { useEffect, useId, useRef } from "react";
 import type { DashboardResultRow } from '@/lib/types';
-import { calculateKPIValue, formatPct } from '@/lib/kpi-utils';
+import {
+  calculateKPIValue,
+  formatDashboardAreaLabel,
+  formatPct,
+} from '@/lib/kpi-utils';
 
 interface KPIDetailModalProps {
   isOpen: boolean;
@@ -94,13 +98,6 @@ export function KPIDetailModal({
   // Helper to safely calc pct
   const calcPct = (t: number, r: number) => t > 0 ? (r / t) * 100 : 0;
 
-  // Helper to get Tambon Name
-  const getTambonName = (areacode: string) => {
-     if (!areacode || areacode.length < 6) return '-';
-     const tambonId = areacode.substring(0, 6);
-     return tambonMap[tambonId] || '';
-  };
-
   const totalT = data.reduce((acc, item) => acc + calculateKPIValue(item).t, 0);
   const totalR = data.reduce((acc, item) => acc + calculateKPIValue(item).r, 0);
 
@@ -179,19 +176,15 @@ export function KPIDetailModal({
                 const pct = calcPct(t, r);
                 const isPass = pct >= targetValue;
                 const isRaw = t === 0;
-                const tambonName = getTambonName(item.areacode);
-                
-                // Extract Moo (Village No) - last 2 digits
-                let moo = '';
-                if (item.areacode && item.areacode.length === 8) {
-                   const m = parseInt(item.areacode.substring(6, 8));
-                   moo = ` ม.${m}`;
-                }
+                const areaLabel = formatDashboardAreaLabel(
+                  item.areacode,
+                  tambonMap,
+                );
 
                 return (
                   <tr key={idx} className="hover:bg-brand-50/10 transition-colors border-b border-neutral-50 last:border-none">
                     <td className="px-3 py-2 md:px-6 md:py-3 font-medium text-neutral-700 truncate max-w-[120px] md:max-w-none">
-                       {tambonName !== '-' ? `ต.${tambonName}${moo}` : '-'}
+                       {areaLabel}
                     </td>
                     <td className="px-2 py-2 md:px-6 md:py-3 text-right text-neutral-600">{fmt(t)}</td>
                     <td className="px-2 py-2 md:px-6 md:py-3 text-right text-neutral-800 font-medium">{fmt(r)}</td>

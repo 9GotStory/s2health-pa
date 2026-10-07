@@ -343,6 +343,48 @@ test('V: sourceLastUpdated 14-digit drops seconds for display', () => {
   );
 });
 
+
+
+test('V2: sourceLastUpdated validates Gregorian calendar and clock ranges', () => {
+  const valid = [
+    '202402290000',
+    '202602282359',
+    '20260228235959',
+  ];
+  for (const sourceLastUpdated of valid) {
+    assert.doesNotThrow(() =>
+      parseDashboardResponse({
+        dataset: wireDataset({ sourceLastUpdated }),
+        results: [wireRow()],
+      }),
+    );
+    assert.doesNotThrow(() => formatSourceLastUpdated(sourceLastUpdated));
+  }
+
+  const invalid = [
+    '202600011200',
+    '202613011200',
+    '202602001200',
+    '202602301200',
+    '202302291200',
+    '202601012400',
+    '202601012360',
+    '20260101235960',
+    '2026010112AA',
+    '2026010112000',
+  ];
+
+  for (const sourceLastUpdated of invalid) {
+    assert.throws(() =>
+      parseDashboardResponse({
+        dataset: wireDataset({ sourceLastUpdated }),
+        results: [wireRow()],
+      }),
+    );
+    assert.throws(() => formatSourceLastUpdated(sourceLastUpdated));
+  }
+});
+
 test('W: sourceLastUpdated null is accepted and formats empty', () => {
   assert.equal(formatSourceLastUpdated(null), '');
   const model = buildModel({ dataset: wireDataset({ sourceLastUpdated: null }) });

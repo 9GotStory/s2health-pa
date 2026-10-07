@@ -185,15 +185,76 @@ function requirePeriodCode(
   throw new Error(`Field ${field} is not a period code`);
 }
 
+interface CompactTimestampParts {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+function parseSourceLastUpdatedParts(value: string): CompactTimestampParts {
+  if (!/^\d{12}(?:\d{2})?$/.test(value)) {
+    throw new Error(
+      'Field sourceLastUpdated is not a 12/14-digit timestamp',
+    );
+  }
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(4, 6));
+  const day = Number(value.slice(6, 8));
+  const hour = Number(value.slice(8, 10));
+  const minute = Number(value.slice(10, 12));
+  const second = value.length === 14 ? Number(value.slice(12, 14)) : 0;
+
+  const leapYear =
+    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > daysInMonth[month - 1] ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59 ||
+    second < 0 ||
+    second > 59
+  ) {
+    throw new Error(
+      'Field sourceLastUpdated is not a valid calendar timestamp',
+    );
+  }
+
+  return { year, month, day, hour, minute, second };
+}
+
 function requireSourceLastUpdated(value: unknown): string | null {
   if (value === null) return null;
-  if (
-    typeof value === 'string' &&
-    (/^\d{12}$/.test(value) || /^\d{14}$/.test(value))
-  ) {
-    return value;
+  if (typeof value !== 'string') {
+    throw new Error(
+      'Field sourceLastUpdated is not a 12/14-digit timestamp',
+    );
   }
-  throw new Error('Field sourceLastUpdated is not a 12/14-digit timestamp');
+
+  parseSourceLastUpdatedParts(value);
+  return value;
 }
 
 function parseResultRow(value: unknown): DashboardResultRow {
@@ -358,14 +419,13 @@ export function parseTambonsResponse(value: unknown): PublicTambon[] {
  */
 export function formatSourceLastUpdated(value: string | null): string {
   if (value === null) return '';
-  const str = value.substring(0, 12); // drop seconds on 14-digit values
-  const d = new Date(
-    parseInt(str.substring(0, 4), 10),
-    parseInt(str.substring(4, 6), 10) - 1,
-    parseInt(str.substring(6, 8), 10),
-    parseInt(str.substring(8, 10), 10),
-    parseInt(str.substring(10, 12), 10),
-  );
+
+  const { year, month, day, hour, minute } =
+    parseSourceLastUpdatedParts(value);
+  const d = new Date(0);
+  d.setFullYear(year, month - 1, day);
+  d.setHours(hour, minute, 0, 0);
+
   return (
     d.toLocaleDateString('th-TH', {
       day: 'numeric',

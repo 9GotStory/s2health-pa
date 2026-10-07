@@ -235,6 +235,35 @@ test('I: catalog targetMonths override wins for display period', () => {
   assert.equal(model.summaries[0].period, 'สะสม 8 เดือน');
 });
 
+
+
+test('I2: catalog targetMonths accepts null and integer months 1..12', () => {
+  for (const targetMonths of [null, 1, 8, 12]) {
+    const parsed = parseKpiCatalogResponse({
+      kpis: [wireKpi({ targetMonths })],
+    });
+    assert.equal(parsed[0].targetMonths, targetMonths);
+  }
+});
+
+test('I3: catalog targetMonths rejects invalid month counts', () => {
+  for (const targetMonths of [0, -1, -3, 13, 99, 1.5]) {
+    assert.throws(() =>
+      parseKpiCatalogResponse({
+        kpis: [wireKpi({ targetMonths })],
+      }),
+    );
+  }
+
+  for (const targetMonths of ['8', true, {}, []]) {
+    assert.throws(() =>
+      parseKpiCatalogResponse({
+        kpis: [wireKpi({ targetMonths })],
+      }),
+    );
+  }
+});
+
 test('J: effectiveQuarter must agree with active result periodCode', () => {
   assert.throws(() =>
     buildModel({

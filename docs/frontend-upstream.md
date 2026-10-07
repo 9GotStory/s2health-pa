@@ -10,7 +10,7 @@ maintaining a second independently designed dashboard implementation.
 
 - upstream repository: `9GotStory/pa-dashboard`
 - upstream branch: `develop`
-- imported source SHA: `b79f3745d5f6331b31dd7783bf79b75d05a3f364`
+- imported source SHA: `7a220229bbb4f182aebb642e5f6ecfc11a2185f1`
 
 ## Shared surface
 
@@ -19,6 +19,7 @@ These areas are expected to stay conceptually aligned with upstream:
 - `src/app/page.tsx`
 - `src/app/dashboard-url-state-contract.test.mjs`
 - `src/components/DashboardFilter.tsx`
+- `src/components/dashboard-filter-state-contract.test.mjs`
 - `src/components/DashboardSkeleton.tsx`
 - `src/components/DataStatusNotifier.tsx`
 - `src/components/KPICard.tsx`

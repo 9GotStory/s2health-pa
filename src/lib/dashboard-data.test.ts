@@ -8,7 +8,7 @@ import {
   parseFacilitiesResponse,
   parseKpiCatalogResponse,
   parseTambonsResponse,
-} from './dashboard-data';
+} from './dashboard-data.ts';
 
 /**
  * Pure contract tests for the Backend v2 dashboard read path. Wire fixtures

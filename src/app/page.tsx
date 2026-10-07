@@ -10,8 +10,37 @@ import DashboardFilter from "@/components/DashboardFilter";
 
 import DataStatusNotifier from "@/components/DataStatusNotifier";
 import { useKPIData } from "@/lib/useKPIData";
+import {
+  dashboardUrlStateEquals,
+  normalizeDashboardUrlState,
+  parseDashboardUrlState,
+  sanitizeDashboardUrlState,
+  serializeDashboardUrlState,
+  type DashboardUrlState,
+} from "@/lib/dashboard-url-state";
 import type { KPIMaster } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+type DashboardHistoryMode = "push" | "replace";
+
+function writeDashboardUrlState(
+  state: DashboardUrlState,
+  mode: DashboardHistoryMode,
+) {
+  const query = serializeDashboardUrlState(state);
+  const nextUrl = query
+    ? `${window.location.pathname}?${query}`
+    : window.location.pathname;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+  if (nextUrl === currentUrl) return;
+
+  if (mode === "push") {
+    window.history.pushState(window.history.state, "", nextUrl);
+  } else {
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }
+}
 
 export default function Home() {
   const {
@@ -24,20 +53,28 @@ export default function Home() {
     lastUpdated,
   } = useKPIData();
 
-  // Multi-Checkbox Filter States
-  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
-  const [selectedKPIs, setSelectedKPIs] = useState<string[]>([]);
-
-  // Active category tab: "" = ทั้งหมด, otherwise a category name. Derived
-  // from the data (kpi_registry manifest), so future categories appear as
-  // tabs automatically. Synced to ?cat= for shareable deep links. Lazy-init
-  // from the URL: safe even under SSR because the first paint is always the
-  // loading skeleton (tabs render only after client-side data arrives).
-  const [activeCategory, setActiveCategory] = useState(() =>
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("cat") ?? ""
-      : "",
+  // Shareable dashboard view state. Category keeps the existing ?cat=
+  // contract; facility/KPI selections use repeated stable machine IDs.
+  // Lazy initialization is safe under SSR because filtered content renders
+  // only after the client-side dashboard data has loaded.
+  const [dashboardUrlState, setDashboardUrlState] = useState<DashboardUrlState>(
+    () =>
+      typeof window !== "undefined"
+        ? parseDashboardUrlState(window.location.search)
+        : { category: "", facilities: [], kpis: [] },
   );
+  const activeCategory = dashboardUrlState.category;
+  const selectedFacilities = dashboardUrlState.facilities;
+  const selectedKPIs = dashboardUrlState.kpis;
+
+  const commitDashboardUrlState = (
+    nextState: DashboardUrlState,
+    mode: DashboardHistoryMode = "push",
+  ) => {
+    const normalized = normalizeDashboardUrlState(nextState);
+    setDashboardUrlState(normalized);
+    writeDashboardUrlState(normalized, mode);
+  };
 
   // Categories follow the KPI-filtered slice so tab availability/counts
   // describe the same dataset as the summary and detail views.
@@ -64,18 +101,15 @@ export default function Home() {
       ? ""
       : activeCategory;
 
-  // Persist tab to URL (external system sync — no setState here).
+  // Browser navigation is authoritative: back/forward restores the complete
+  // dashboard view state without a reload.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (currentCategory) params.set("cat", currentCategory);
-    else params.delete("cat");
-    const qs = params.toString();
-    window.history.replaceState(
-      null,
-      "",
-      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-    );
-  }, [currentCategory]);
+    const restoreFromHistory = () => {
+      setDashboardUrlState(parseDashboardUrlState(window.location.search));
+    };
+    window.addEventListener("popstate", restoreFromHistory);
+    return () => window.removeEventListener("popstate", restoreFromHistory);
+  }, []);
 
   // Filter Data based on Selected KPIs
   const filteredData = useMemo(() => {
@@ -110,6 +144,45 @@ export default function Home() {
       })),
     [data],
   );
+
+  // Once reference data is authoritative, drop stale/unknown URL values.
+  // Category validation first uses the full dataset; then the existing
+  // KPI-filtered category guard removes a category that is unavailable in
+  // the selected KPI slice. Canonicalization uses replaceState so cleanup
+  // does not create a misleading browser-history entry.
+  useEffect(() => {
+    if (isLoading || dataset === null) return;
+
+    const fullCategories = data
+      .map((kpi) => kpi.category ?? "")
+      .filter(Boolean);
+    const sanitized = sanitizeDashboardUrlState(dashboardUrlState, {
+      categories: fullCategories,
+      facilities: Object.keys(hospitalMap),
+      kpis: data.map((kpi) => kpi.tableName),
+    });
+    const canonical = {
+      ...sanitized,
+      category:
+        sanitized.category &&
+        categories.length > 0 &&
+        !categories.includes(sanitized.category)
+          ? ""
+          : sanitized.category,
+    };
+
+    if (dashboardUrlStateEquals(canonical, dashboardUrlState)) return;
+
+    setDashboardUrlState(canonical);
+    writeDashboardUrlState(canonical, "replace");
+  }, [
+    categories,
+    dashboardUrlState,
+    data,
+    dataset,
+    hospitalMap,
+    isLoading,
+  ]);
 
   if (isLoading) {
     return (
@@ -186,15 +259,30 @@ export default function Home() {
           kpiList={dynamicKPIList}
           selectedFacilities={selectedFacilities}
           selectedKPIs={selectedKPIs}
-          onFacilitiesChange={setSelectedFacilities}
-          onKPIsChange={setSelectedKPIs}
+          onFacilitiesChange={(facilities) =>
+            commitDashboardUrlState({
+              ...dashboardUrlState,
+              facilities,
+            })
+          }
+          onKPIsChange={(kpis) =>
+            commitDashboardUrlState({
+              ...dashboardUrlState,
+              kpis,
+            })
+          }
         />
 
         {/* CATEGORY TABS — one per registry tab + ทั้งหมด */}
         {categories.length > 1 && (
           <div className="mb-6 flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
             <button
-              onClick={() => setActiveCategory("")}
+              onClick={() =>
+                commitDashboardUrlState({
+                  ...dashboardUrlState,
+                  category: "",
+                })
+              }
               className={cn(
                 "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all shadow-sm border font-prompt",
                 currentCategory === ""
@@ -210,7 +298,12 @@ export default function Home() {
               return (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() =>
+                    commitDashboardUrlState({
+                      ...dashboardUrlState,
+                      category: cat,
+                    })
+                  }
                   className={cn(
                     "px-3.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all shadow-sm border font-prompt",
                     currentCategory === cat

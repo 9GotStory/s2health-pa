@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useId, useRef } from "react";
 import type { DashboardResultRow } from '@/lib/types';
 import { calculateKPIValue, formatPct } from '@/lib/kpi-utils';
 
@@ -23,6 +26,66 @@ export function KPIDetailModal({
   tambonMap = {},
   lastUpdated = ''
 }: KPIDetailModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const previousOverflow = document.body.style.overflow;
+
+    const getFocusable = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((element) => !element.hasAttribute("hidden"));
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    closeButtonRef.current?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Helper to format numbers with commas
@@ -44,29 +107,50 @@ export function KPIDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-neutral-900/20 backdrop-blur-sm transition-opacity" 
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-neutral-900/20 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Content */}
-      <div className="relative flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200
-        w-[95vw] max-h-[90vh] 
-        md:w-full md:max-w-4xl 
-        landscape:max-h-[95vh] landscape:w-[90vw] lg:landscape:max-w-5xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="relative flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200
+        w-[95vw] max-h-[90vh]
+        md:w-full md:max-w-4xl
+        landscape:max-h-[95vh] landscape:w-[90vw] lg:landscape:max-w-5xl"
+      >
         
         {/* Header */}
         <div className="bg-white border-b border-neutral-100 px-4 py-4 md:px-6 md:py-5 flex items-center justify-between shrink-0">
           <div className="overflow-hidden mr-4">
-            <h3 className="text-base md:text-lg font-bold text-neutral-800 truncate">{facilityName}</h3>
-            <p className="text-xs md:text-sm text-neutral-500 truncate">{title}</p>
+            <h3
+              id={titleId}
+              className="text-base md:text-lg font-bold text-neutral-800 truncate"
+            >
+              {facilityName}
+            </h3>
+            <p
+              id={descriptionId}
+              className="text-xs md:text-sm text-neutral-500 truncate"
+            >
+              {title}
+            </p>
             {lastUpdated && (
                <p className="text-[10px] md:text-xs text-neutral-400 mt-0.5">
                  ข้อมูลล่าสุด: {lastUpdated}
                </p>
             )}
           </div>
-          <button 
+          <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
             aria-label="ปิดหน้าต่างรายละเอียด"
             className="p-1.5 md:p-2 hover:bg-neutral-200 rounded-full transition-colors text-neutral-500 hover:text-neutral-700 shrink-0"

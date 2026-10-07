@@ -83,6 +83,7 @@ export function KPICard({
                   href={kpi.link}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`เปิดรายละเอียดภายนอกของ ${kpi.title}`}
                   onClick={(e) => e.stopPropagation()}
                   className="p-1 -m-1 hover:bg-neutral-100 rounded-full transition-colors"
                 >
@@ -110,8 +111,12 @@ export function KPICard({
 
           {/* Pass/Fail Indicator Icon */}
           <div
+            aria-hidden="true"
             className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${isPass ? "bg-success-500" : "bg-error-500"}`}
           />
+          <span className="sr-only">
+            {isPass ? "ผ่านเกณฑ์" : "ต้องปรับปรุง"}
+          </span>
         </div>
 
         {/* Main Stats */}
@@ -148,13 +153,28 @@ export function KPICard({
             </div>
           </div>
         </div>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClick(kpi);
+            }}
+            className="min-h-11 px-3 py-2 rounded-lg text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            ดูรายละเอียด
+          </button>
+        </div>
       </div>
 
       {/* Footer / Expand Button */}
       {(selectedFacilities.length === 0 || selectedFacilities.length > 1) && (
-        <div
-          className={`bg-neutral-50 border-t border-neutral-100 px-4 py-2 flex items-center justify-center cursor-pointer hover:bg-neutral-100 transition-colors ${isExpanded ? "border-b" : ""}`}
+        <button
+          type="button"
+          aria-expanded={isExpanded}
           onClick={handleExpand}
+          className={`w-full min-h-11 bg-neutral-50 border-t border-neutral-100 px-4 py-2 flex items-center justify-center cursor-pointer hover:bg-neutral-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${isExpanded ? "border-b" : ""}`}
         >
           <span className="text-xs font-medium text-neutral-500 flex items-center gap-1">
             {isExpanded ? "ซ่อนรายชื่อหน่วยบริการ" : "ดูรายชื่อหน่วยบริการ"}
@@ -164,7 +184,7 @@ export function KPICard({
               <ChevronDown className="w-3 h-3" />
             )}
           </span>
-        </div>
+        </button>
       )}
 
       {/* Expanded List */}

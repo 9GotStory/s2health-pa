@@ -25,7 +25,7 @@ Initial frontend rebase authority:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
-- Source SHA: `bba48f3c6432d7142c20a726682b3ef9fdf4243b`
+- Source SHA: `b1fb36b71ea8d40b32bc2e8fdf989e2d29eac3f0`
 
 The imported surface includes the dashboard page, filters, summary cards,
 desktop table, mobile KPI cards, detail modal, export support, API contract
@@ -79,6 +79,7 @@ Commands:
 ```sh
 npm ci
 npm run test:dashboard
+node --test src/components/accessibility-contract.test.mjs
 npm run lint
 npm run dev
 ```

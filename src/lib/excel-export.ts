@@ -175,7 +175,7 @@ export async function exportToExcel(
       width: 18,
     },
     {
-      header: "Result (%)",
+      header: "ผลงาน",
       width: 15,
     },
   ];
@@ -250,7 +250,9 @@ export async function exportToExcel(
           ),
 
           createCell(
-            `≥ ${targetValue} (${kpi.targetMonths} เดือน)`,
+            isRawCount
+              ? "— (แบบจำนวน)"
+              : `≥ ${targetValue} (${kpi.targetMonths} เดือน)`,
           ),
 
           createCell(

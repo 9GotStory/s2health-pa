@@ -207,6 +207,36 @@ test('F2: explicit zero KPI target is preserved in the presentation model', () =
   assert.equal(model.summaries[0].targetValue, 0);
 });
 
+
+
+test('F3: KPI catalog target accepts null and percentage range 0..100', () => {
+  for (const target of [null, 0, 85, 100]) {
+    const parsed = parseKpiCatalogResponse({
+      kpis: [wireKpi({ target })],
+    });
+    assert.equal(parsed[0].target, target);
+  }
+});
+
+test('F4: KPI catalog target rejects values outside percentage range', () => {
+  for (const target of [-1, -0.01, 100.01, 101, 150]) {
+    assert.throws(() =>
+      parseKpiCatalogResponse({
+        kpis: [wireKpi({ target })],
+      }),
+    );
+  }
+});
+
+test('F5: dashboard result-row target remains an unrestricted denominator count', () => {
+  const model = buildModel({
+    rows: [wireRow({ target: 250, result: 125 })],
+  });
+  assert.equal(model.summaries[0].totalTarget, 250);
+  assert.equal(model.summaries[0].totalResult, 125);
+  assert.equal(model.summaries[0].percentage, 50);
+});
+
 test('G: annual KPI presents 12 months / รายปี', () => {
   const model = buildModel({
     kpis: [wireKpi({ isQuarterly: false })],

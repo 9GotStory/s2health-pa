@@ -79,7 +79,7 @@ export interface KPISummary {
   percentage: number;
   data: DashboardResultRow[];
   breakdown: Record<string, { target: number; result: number; percentage: number }>;
-  targetValue: number; // The goal (e.g. 70%)
+  targetValue: number | null; // Explicit goal from the API; null uses DEFAULT_TARGET
   targetMonths: number; // Resolved target period in months — annual=12, quarterly=currentQuarter×3
   link?: string;
   period?: string; // e.g. "Q2"
@@ -93,7 +93,7 @@ export interface KPISummary {
 export interface KPIMaster {
   table_name: string;
   title: string;
-  target: number;
+  target: number | null;
   order: number;
   link?: string;
   // Grouping columns from the kpi_master sheet. All optional — the 13

@@ -25,7 +25,7 @@ Initial frontend rebase authority:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
-- Source SHA: `bb8c6e8034a61a5ce9ec792513fb9532325a34c4`
+- Source SHA: `22bcf6293a1bea60d7e4a963b49ae3fe3ceb9044`
 
 The imported surface includes the dashboard page, filters, summary cards,
 desktop table, mobile KPI cards, detail modal, export support, API contract

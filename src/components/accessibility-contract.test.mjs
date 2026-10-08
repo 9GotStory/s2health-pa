@@ -41,3 +41,17 @@ test("mobile KPI cards expose explicit keyboard actions", () => {
   assert.match(text, /เปิดรายละเอียดภายนอกของ/);
   assert.match(text, /focus-visible:ring-brand-500/);
 });
+
+test("mobile KPI card accessibility distinguishes raw-count from unavailable percentage state", () => {
+  const text = source("./KPICard.tsx");
+
+  assert.match(
+    text,
+    /const evaluationStatusText =[\s\S]*?evaluation === "not-applicable"[\s\S]*?isRawCount[\s\S]*?"ตัวชี้วัดแบบจำนวน ไม่ประเมินผ่านหรือไม่ผ่าน"[\s\S]*?"ไม่มีฐานประเมินสำหรับหน่วยบริการที่เลือก จึงไม่ประเมินผ่านหรือไม่ผ่าน"/,
+  );
+  assert.match(
+    text,
+    /<span className="sr-only">\{evaluationStatusText\}<\/span>/,
+  );
+});
+

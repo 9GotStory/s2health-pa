@@ -41,6 +41,14 @@ export function KPICard({
   const targetVal = resolveKpiTarget(kpi);
   const evaluation = evaluateKPI(kpi, selectedFacilities);
   const isPass = evaluation === "pass";
+  const evaluationStatusText =
+    evaluation === "not-applicable"
+      ? isRawCount
+        ? "ตัวชี้วัดแบบจำนวน ไม่ประเมินผ่านหรือไม่ผ่าน"
+        : "ไม่มีฐานประเมินสำหรับหน่วยบริการที่เลือก จึงไม่ประเมินผ่านหรือไม่ผ่าน"
+      : isPass
+        ? "ผ่านเกณฑ์"
+        : "ต้องปรับปรุง";
 
   const period = kpi.period;
   const isQuarter = period && period.includes("(Q");
@@ -128,13 +136,7 @@ export function KPICard({
                   : "bg-error-500"
             }`}
           />
-          <span className="sr-only">
-            {evaluation === "not-applicable"
-              ? "ตัวชี้วัดแบบจำนวน ไม่ประเมินผ่านหรือไม่ผ่าน"
-              : isPass
-                ? "ผ่านเกณฑ์"
-                : "ต้องปรับปรุง"}
-          </span>
+          <span className="sr-only">{evaluationStatusText}</span>
         </div>
 
         {/* Main Stats */}

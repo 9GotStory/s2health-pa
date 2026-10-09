@@ -3,12 +3,8 @@
 import { useState, useEffect } from 'react';
 import type { DashboardDataset, KPISummary } from './types';
 import {
-  buildDashboardModel,
-  parseDashboardResponse,
-  parseFacilitiesResponse,
-  parseKpiCatalogResponse,
-  parseTambonsResponse,
-  type DashboardModel,
+  loadConsistentDashboard,
+  type ConsistentDashboardLoad,
   type HospitalDetail,
 } from './dashboard-data';
 
@@ -137,41 +133,17 @@ async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   }
 }
 
-type LoadResult =
-  | { dataset: null }
-  | { dataset: DashboardDataset; model: DashboardModel };
-
-async function loadDashboard(signal: AbortSignal): Promise<LoadResult> {
-  // STEP 1 — the active dataset is the authority. A `dataset: null` +
-  // empty-results response is a normal state, not an error, and means the
-  // remaining endpoints hold nothing to render.
-  const dashboard = parseDashboardResponse(
-    await fetchJson(apiEndpoint(DASHBOARD_ENDPOINT), signal),
+async function loadDashboard(signal: AbortSignal): Promise<ConsistentDashboardLoad> {
+  const endpoints = {
+    dashboard: DASHBOARD_ENDPOINT,
+    kpis: KPIS_ENDPOINT,
+    facilities: FACILITIES_ENDPOINT,
+    tambons: TAMBONS_ENDPOINT,
+  } as const;
+  return loadConsistentDashboard(
+    (endpoint) => fetchJson(apiEndpoint(endpoints[endpoint]), signal),
+    signal,
   );
-
-  if (dashboard.dataset === null) {
-    return { dataset: null };
-  }
-
-  // STEP 2 — catalog + references in parallel. React state is committed
-  // only after every response succeeded AND the combined payload validated,
-  // so a partial dashboard state can never reach the UI.
-  const [kpis, facilities, tambons] = await Promise.all([
-    fetchJson(apiEndpoint(KPIS_ENDPOINT), signal).then(parseKpiCatalogResponse),
-    fetchJson(apiEndpoint(FACILITIES_ENDPOINT), signal).then(parseFacilitiesResponse),
-    fetchJson(apiEndpoint(TAMBONS_ENDPOINT), signal).then(parseTambonsResponse),
-  ]);
-
-  return {
-    dataset: dashboard.dataset,
-    model: buildDashboardModel({
-      dataset: dashboard.dataset,
-      results: dashboard.results,
-      kpis,
-      facilities,
-      tambons,
-    }),
-  };
 }
 
 export function useKPIData(): UseKPIDataResult {

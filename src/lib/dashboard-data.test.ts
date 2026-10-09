@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   buildDashboardModel,
   formatSourceLastUpdated,
+  loadConsistentDashboard,
+  parseKpiCatalogSnapshot,
   parseDashboardResponse,
   parseFacilitiesResponse,
   parseKpiCatalogResponse,
@@ -706,4 +708,161 @@ test('R2-02 F: per-bucket result overflow is rejected while the global result st
       ],
     }),
   );
+});
+
+test('catalog snapshot requires an exact nullable decimal run identity', () => {
+  const valid = parseKpiCatalogSnapshot({
+    activeSyncRunId: '42', kpis: [wireKpi({ target: 0 })],
+  });
+  assert.equal(valid.activeSyncRunId, '42');
+  assert.equal(valid.kpis[0]?.target, 0);
+  assert.deepEqual(parseKpiCatalogSnapshot({ activeSyncRunId: null, kpis: [] }), {
+    activeSyncRunId: null, kpis: [],
+  });
+  for (const bad of [undefined, '', ' ', 'run-42', 42, false, {}, '42.0']) {
+    assert.throws(() => parseKpiCatalogSnapshot({
+      activeSyncRunId: bad, kpis: [wireKpi()],
+    }));
+  }
+});
+
+test('snapshot loader rejects A/B race then composes only B/B', async () => {
+  const ids = ['42', '43'];
+  let dashboards = 0;
+  let catalogs = 0;
+  const signals: string[] = [];
+  const load = async (endpoint: string): Promise<unknown> => {
+    signals.push(endpoint);
+    if (endpoint === 'dashboard') {
+      return {
+        dataset: wireDataset({ syncRunId: ids[ Math.min(dashboards++, 1) ] }),
+        results: [wireRow()],
+      };
+    }
+    if (endpoint === 'kpis') {
+      catalogs += 1;
+      return {
+        activeSyncRunId: '43',
+        kpis: [wireKpi({ target: 95 })],
+      };
+    }
+    if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+    if (endpoint === 'tambons') return { tambons: [wireTambon()] };
+    throw new Error('Unexpected endpoint');
+  };
+  const result = await loadConsistentDashboard(load, new AbortController().signal);
+  assert.notEqual(result.dataset, null);
+  if (!('model' in result)) throw new Error('Expected an active dashboard model');
+  assert.equal(result.dataset.syncRunId, '43');
+  assert.equal(result.model.summaries[0]?.targetValue, 95);
+  assert.equal(dashboards, 2);
+  assert.equal(catalogs, 2);
+  assert.deepEqual(signals.slice(0, 2), ['dashboard', 'kpis']);
+});
+
+test('snapshot loader bounds repeated A/B identity mismatches', async () => {
+  let dashboardCalls = 0;
+  const fetcher = async (endpoint: string): Promise<unknown> => {
+    if (endpoint === 'dashboard') {
+      dashboardCalls += 1;
+      return { dataset: wireDataset({ syncRunId: '42' }), results: [wireRow()] };
+    }
+    if (endpoint === 'kpis') {
+      return { activeSyncRunId: '43', kpis: [wireKpi({ target: 95 })] };
+    }
+    if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+    return { tambons: [wireTambon()] };
+  };
+  await assert.rejects(loadConsistentDashboard(fetcher, new AbortController().signal));
+  assert.equal(dashboardCalls, 2);
+});
+
+test('snapshot loader accepts stable run and rejects same-run malformed catalog without retry', async () => {
+  for (const target of [0, null, 85]) {
+    let dashboardCalls = 0;
+    const fetcher = async (endpoint: string): Promise<unknown> => {
+      if (endpoint === 'dashboard') {
+        dashboardCalls++;
+        return { dataset: wireDataset(), results: [wireRow()] };
+      }
+      if (endpoint === 'kpis') return {
+        activeSyncRunId: '42', kpis: [wireKpi({ target })],
+      };
+      if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+      return { tambons: [wireTambon()] };
+    };
+    const result = await loadConsistentDashboard(fetcher, new AbortController().signal);
+    assert.notEqual(result.dataset, null);
+    if (!('model' in result)) throw new Error('Expected an active dashboard model');
+    assert.equal(result.model.summaries[0]?.targetValue, target);
+    assert.equal(dashboardCalls, 1);
+  }
+  let count = 0;
+  const bad = async (endpoint: string): Promise<unknown> => {
+    if (endpoint === 'dashboard') {
+      count++;
+      return { dataset: wireDataset(), results: [wireRow()] };
+    }
+    if (endpoint === 'kpis') return { activeSyncRunId: '42', kpis: [wireKpi({ key: 'alien' })] };
+    if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+    return { tambons: [wireTambon()] };
+  };
+  await assert.rejects(loadConsistentDashboard(bad, new AbortController().signal));
+  assert.equal(count, 1);
+});
+
+test('snapshot loader respects no-active and aborted reload', async () => {
+  let nonDashboard = 0;
+  const inactive = await loadConsistentDashboard(async (endpoint) => {
+    if (endpoint !== 'dashboard') nonDashboard += 1;
+    return { dataset: null, results: [] };
+  }, new AbortController().signal);
+  assert.equal(inactive.dataset, null);
+  assert.equal(nonDashboard, 0);
+
+  const controller = new AbortController();
+  let count = 0;
+  const interleaved = async (endpoint: string): Promise<unknown> => {
+    if (endpoint === 'dashboard') {
+      count++;
+      return { dataset: wireDataset(), results: [wireRow()] };
+    }
+    if (endpoint === 'kpis') {
+      controller.abort();
+      return { activeSyncRunId: '43', kpis: [wireKpi()] };
+    }
+    if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+    return { tambons: [wireTambon()] };
+  };
+  await assert.rejects(loadConsistentDashboard(interleaved, controller.signal), {
+    name: 'AbortError',
+  });
+  assert.equal(count, 1);
+});
+
+test('changed catalog membership on activation triggers a full reload', async () => {
+  let dashboards = 0;
+  let catalogs = 0;
+  const fetcher = async (endpoint: string): Promise<unknown> => {
+    if (endpoint === 'dashboard') {
+      dashboards++;
+      return {
+        dataset: wireDataset({ syncRunId: dashboards === 1 ? '42' : '43' }),
+        results: [wireRow({ kpiKey: dashboards === 1 ? 's_anc5' : 's_new' })],
+      };
+    }
+    if (endpoint === 'kpis') {
+      catalogs++;
+      return { activeSyncRunId: '43', kpis: [wireKpi({ key: 's_new', target: 90 })] };
+    }
+    if (endpoint === 'facilities') return { facilities: [wireFacility()] };
+    return { tambons: [wireTambon()] };
+  };
+  const value = await loadConsistentDashboard(fetcher, new AbortController().signal);
+  assert.notEqual(value.dataset, null);
+  if (!('model' in value)) throw new Error('Expected an active dashboard model');
+  assert.equal(value.dataset.syncRunId, '43');
+  assert.equal(value.model.summaries[0]?.tableName, 's_new');
+  assert.equal(dashboards, 2);
+  assert.equal(catalogs, 2);
 });

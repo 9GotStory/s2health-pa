@@ -414,6 +414,18 @@ export function parseKpiCatalogResponse(value: unknown): PublicKpi[] {
   });
 }
 
+export function parseKpiCatalogSnapshot(value: unknown): {
+  activeSyncRunId: string | null;
+  kpis: PublicKpi[];
+} {
+  const root = asRecord(value, 'KPI catalog response');
+  const id = root.activeSyncRunId;
+  if (id !== null && (typeof id !== 'string' || !/^[0-9]+$/.test(id))) {
+    throw new Error('Catalog run identity is invalid');
+  }
+  return { activeSyncRunId: id as string | null, kpis: parseKpiCatalogResponse(value) };
+}
+
 export function parseFacilitiesResponse(value: unknown): PublicFacility[] {
   const root = asRecord(value, 'Facilities response');
   if (!Array.isArray(root.facilities)) {
@@ -665,4 +677,53 @@ export function buildDashboardModel(input: {
     tambonMap,
     lastUpdated: formatSourceLastUpdated(dataset.sourceLastUpdated),
   };
+}
+
+export type ConsistentDashboardLoad =
+  | { dataset: null }
+  | { dataset: DashboardDataset; model: DashboardModel };
+
+/**
+ * Compose only a catalog/result pair from the same active run.
+ * A changed activation is retried as a whole (maximum two attempts).
+ * Other contract errors are never retried.
+ */
+export async function loadConsistentDashboard(
+  fetchPayload: (
+    endpoint: 'dashboard' | 'kpis' | 'facilities' | 'tambons',
+  ) => Promise<unknown>,
+  signal: AbortSignal,
+): Promise<ConsistentDashboardLoad> {
+  const checkAbort = () => {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+  };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    checkAbort();
+    const dashboard = parseDashboardResponse(await fetchPayload('dashboard'));
+    checkAbort();
+    if (dashboard.dataset === null) return { dataset: null };
+
+    const [catalog, facilities, tambons] = await Promise.all([
+      fetchPayload('kpis').then(parseKpiCatalogSnapshot),
+      fetchPayload('facilities').then(parseFacilitiesResponse),
+      fetchPayload('tambons').then(parseTambonsResponse),
+    ]);
+    checkAbort();
+
+    if (dashboard.dataset.syncRunId !== catalog.activeSyncRunId) {
+      if (attempt === 0) continue;
+      throw new Error('Active dataset changed during dashboard loading');
+    }
+    return {
+      dataset: dashboard.dataset,
+      model: buildDashboardModel({
+        dataset: dashboard.dataset,
+        results: dashboard.results,
+        kpis: catalog.kpis,
+        facilities,
+        tambons,
+      }),
+    };
+  }
+  throw new Error('Unable to read a consistent active dashboard');
 }

@@ -122,3 +122,26 @@ jobs:
           PA_ALLOW_DESTRUCTIVE_DB_TESTS: ""
           PA_REFERENCE_SOURCE_URL: ""
           PA_ALLOW_EXTERNAL_REFERENCE_FETCH: ""
+
+  infrastructure:
+    name: API OCI Build and Deployment Contracts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Run source-only deployment contract tests
+        run: node --test infra/test/deployment-contract.test.mjs
+
+      # GitHub-hosted Docker builds the API image locally only. This CI job
+      # never logs in to a registry, pushes an image or deploys a Quadlet.
+      - name: Build API OCI image without pushing
+        run: docker build --file infra/containers/api.Containerfile --build-arg SOURCE_REVISION="${GITHUB_SHA}" --tag s2health-pa-api:ci .

@@ -1,0 +1,24 @@
+# PA Dashboard database migration (one-shot boot dependency).
+#
+# Template only — rendered by infra/render-quadlets.mjs with a digest-pinned
+# image reference. Runs the existing checksum/idempotency-protected migration
+# runner from the API image. RemainAfterExit=yes keeps the unit active after a
+# successful run so API startup can order itself after completed migrations.
+
+[Unit]
+Description=PA Dashboard database migration
+Requires=pa-dashboard-db.service
+After=pa-dashboard-db.service
+
+[Container]
+Image=@@PA_API_IMAGE@@
+Network=pa-dashboard-app.network
+EnvironmentFile=%h/.config/pa-dashboard/database.env
+Exec=node dist/src/db/migrate.js
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

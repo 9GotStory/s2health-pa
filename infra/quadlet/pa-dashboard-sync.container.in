@@ -1,0 +1,21 @@
+# PA Dashboard MOPH synchronization (manual one-shot, timer-ready).
+#
+# Template only — rendered by infra/render-quadlets.mjs with a digest-pinned
+# image reference. Runs one MOPH synchronization pass from the API image. No
+# [Install] section and no timer are created here — the schedule is a separate
+# future gate. RemainAfterExit is intentionally NOT set so a later timer can
+# re-run the unit.
+
+[Unit]
+Description=PA Dashboard MOPH synchronization
+Requires=pa-dashboard-migrate.service
+After=pa-dashboard-migrate.service
+
+[Container]
+Image=@@PA_API_IMAGE@@
+Network=pa-dashboard-app.network
+EnvironmentFile=%h/.config/pa-dashboard/database.env
+Exec=node dist/src/sync/run.js
+
+[Service]
+Type=oneshot

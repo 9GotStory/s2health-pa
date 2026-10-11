@@ -69,9 +69,15 @@ replaced by this import.
   any database URL or destructive-test authorization.
 - Destructive PostgreSQL integration tests require a separately authorized,
   **isolated disposable PostgreSQL 18** instance — never production.
-- G-03 will review and adapt API OCI/Quadlet infrastructure from the historical
-  backend repository. Do not copy legacy Apps Script, `.clasp*`, legacy
-  `src/app/sync/**`, upstream standalone web Containerfile or auto-deploy workflow.
+- G-03 prepares an **API-only** OCI Containerfile, tag-gated GHCR release
+  workflow, rootless Podman Quadlet source and a staging-only renderer under
+  `infra/`, adapted from `pa-dashboard/develop@a3862692c7ffd8dda3c593fd029e1bb67b7fd68b`.
+  See `infra/README.md` for the exact file and runtime compatibility matrix.
+  The new API image owner is `ghcr.io/9gotstory/s2health-pa-api`. Existing
+  Fedora `pa-dashboard-*` unit and volume names are intentionally not renamed.
+  **No image tag is pushed and no host cutover occurs by adding source files.**
+  Do not copy legacy Apps Script, `.clasp*`, old `src/app/sync/**`, the
+  upstream self-hosted web Containerfile or auto-deploy workflow.
 - Future backend development should occur in `s2health-pa`; `pa-dashboard/main`
   continues to represent the legacy Google Apps Script + Google Sheets system.
 - Import is not merge authorization. Feature branch, CI, technical review and an

@@ -1,0 +1,31 @@
+# VCS and repository metadata
+.git
+.gitignore
+.github
+.agent
+.clasp.json
+.claspignore
+
+# Editor and OS transient files
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Dependencies and build outputs
+**/node_modules
+.next
+out
+backend/dist
+coverage
+
+# Local environment files (never bake into images)
+.env*
+**/.env*
+
+# TypeScript incremental state
+*.tsbuildinfo
+
+# Local dev/worktree artifacts
+.playwright-mcp
+*.patch

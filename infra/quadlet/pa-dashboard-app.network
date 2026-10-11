@@ -1,0 +1,12 @@
+# Private application network for PA Dashboard:
+# API, PostgreSQL, migration, reference population and synchronization.
+# The historical self-hosted web unit remains separately managed during source transition.
+#
+# Normal bridge network with default DNS behavior. It must NOT be marked
+# Internal, because reference population and MOPH synchronization require
+# outbound HTTPS access. This network is private to the application and is
+# intentionally not connected to the existing platform `edge` network.
+
+[Network]
+Driver=bridge
+Label=app=pa-dashboard

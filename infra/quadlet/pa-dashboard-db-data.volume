@@ -1,0 +1,4 @@
+# Named persistent storage for the PA Dashboard PostgreSQL 18 database.
+
+[Volume]
+Label=app=pa-dashboard

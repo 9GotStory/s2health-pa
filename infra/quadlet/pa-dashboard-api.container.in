@@ -1,0 +1,35 @@
+# PA Dashboard API (Backend-v2).
+#
+# Template only — rendered by infra/render-quadlets.mjs with a digest-pinned
+# image reference. The API stays on the private application network and never
+# joins the platform `edge` network. A loopback-only host publish is reserved
+# for host-local ingress such as Tailscale Funnel; it is never bound to LAN/WAN.
+# Notify=healthy lets the web service wait for API readiness.
+
+[Unit]
+Description=PA Dashboard API
+Requires=pa-dashboard-migrate.service
+After=pa-dashboard-migrate.service
+
+[Container]
+Image=@@PA_API_IMAGE@@
+ContainerName=pa-dashboard-api
+Network=pa-dashboard-app.network
+NetworkAlias=pa-dashboard-api
+EnvironmentFile=%h/.config/pa-dashboard/database.env
+EnvironmentFile=%h/.config/pa-dashboard/public-api.env
+Environment=PA_API_HOST=0.0.0.0
+Environment=PA_API_PORT=3001
+PublishPort=127.0.0.1:13001:3001
+HealthCmd=wget -q --spider http://127.0.0.1:3001/api/v1/health/ready
+HealthStartPeriod=15s
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=6
+Notify=healthy
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

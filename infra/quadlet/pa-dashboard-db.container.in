@@ -1,0 +1,33 @@
+# PA Dashboard PostgreSQL 18 database.
+#
+# Template only — rendered by infra/render-quadlets.mjs with a digest-pinned
+# image reference. The official PostgreSQL 18 image declares
+# PGDATA=/var/lib/postgresql/18/docker, so persistent storage MUST be mounted
+# at /var/lib/postgresql (NOT /var/lib/postgresql/data).
+
+[Unit]
+Description=PA Dashboard PostgreSQL 18 database
+
+[Container]
+Image=@@PA_DB_IMAGE@@
+ContainerName=pa-dashboard-db
+Network=pa-dashboard-app.network
+NetworkAlias=pa-dashboard-db
+EnvironmentFile=%h/.config/pa-dashboard/postgres.env
+Volume=pa-dashboard-db-data.volume:/var/lib/postgresql
+# $$ escapes systemd expansion; the healthcheck shell expands the variable
+# against the container environment at runtime.
+HealthCmd=pg_isready -U $${POSTGRES_USER:-postgres}
+HealthStartPeriod=30s
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=12
+# systemd treats the service as started only once the container is healthy.
+Notify=healthy
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

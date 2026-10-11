@@ -4,6 +4,24 @@ on:
   push:
     branches:
       - main
+    # Deploy only for changes that can affect the static public frontend.
+    # Backend, infrastructure and documentation-only commits must not deploy Pages.
+    # Keep this allowlist current when adding frontend build inputs.
+    paths:
+      - ".github/workflows/pages.yml"
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "tsconfig.json"
+      - "eslint.config.mjs"
+      - "postcss.config.mjs"
+      - ".gitignore"
+      - ".npmrc"
+      - ".node-version"
+      - ".nvmrc"
+      - "tailwind.config.*"
   workflow_dispatch:
 
 permissions:

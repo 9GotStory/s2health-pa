@@ -1,5 +1,9 @@
 # s2health-pa
 
+## System documentation (Thai)
+
+อ่าน [คู่มือระบบฉบับสมบูรณ์](docs/system/README.md) สำหรับภาพรวม สถาปัตยกรรม โครงสร้างโค้ด ฟีเจอร์และ KPI Catalog, API/Data Model, Deployment, Security, Testing และคู่มือพัฒนาต่อ (ตรวจสอบจาก Source/Release ณ 2026-10-11).
+
 Public S2Health PA frontend for the Song District Health network.
 
 ## Public URL

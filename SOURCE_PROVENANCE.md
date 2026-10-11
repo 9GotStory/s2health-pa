@@ -56,6 +56,14 @@ replaced by this import.
 ## CI and future changes
 
 - The destination frontend CI and Pages workflow remain in place.
+- The public frontend root `package.json` changes only its `lint` script
+  from `eslint` to `eslint src`: this scopes frontend lint to frontend source
+  after adding the independent backend tree. All frontend dependency versions
+  and the root lockfile remain untouched.
+- **Pages deploy implication:** the G-01 allowlist includes `package.json`;
+  merging this PR is expected to cause one GitHub Pages deployment.
+  That requires explicit Product Owner approval, even though the backend
+  itself is imported without deployment.
 - G-02 adds an isolated `backend` CI job: Node 24 `npm ci`, typecheck, build,
   unit/static tests and a skip-guard probe of database integration suites without
   any database URL or destructive-test authorization.

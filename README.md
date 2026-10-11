@@ -4,7 +4,7 @@
 
 อ่าน [คู่มือระบบฉบับสมบูรณ์](docs/system/README.md) สำหรับภาพรวม สถาปัตยกรรม โครงสร้างโค้ด ฟีเจอร์และ KPI Catalog, API/Data Model, Deployment, Security, Testing และคู่มือพัฒนาต่อ (ตรวจสอบจาก Source/Release ณ 2026-10-11).
 
-Public S2Health PA frontend for the Song District Health network.
+S2Health PA source repository for the Song District Health network: Next.js public frontend **and** Fastify Backend-v2, PostgreSQL SQL migrations, MOPH sync engine, reference-data tools and backend tests.
 
 ## Public URL
 
@@ -12,20 +12,24 @@ https://9gotstory.github.io/s2health-pa/
 
 ## Architecture
 
-- Frontend: Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- Frontend source: `src/` — Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- Backend source: `backend/` — Node.js 24 + Fastify 5 + PostgreSQL 18 schema migrations, sync, tests
 - Hosting: GitHub Pages static export
 - Public API: Fedora `pa-dashboard-api`
 - Public API ingress: Tailscale Funnel over HTTPS
 - Database: PostgreSQL on Fedora
 - Monitoring: Prometheus / Grafana on Fedora
 
-The public frontend is adapted from the proven Backend-v2 frontend in
-`9GotStory/pa-dashboard`. Shared dashboard behavior should be reused from that
-upstream rather than independently reimplemented here.
+The public frontend was originally adapted from the proven Backend-v2 frontend
+in `9GotStory/pa-dashboard`. The accepted backend implementation has now been
+imported byte-for-byte into `backend/`. **New S2Health PA frontend and backend
+changes belong in this repository**, while `pa-dashboard/main` continues as the
+legacy Apps Script + Google Sheets system. Infrastructure/OCI source migration
+and Fedora runtime cutover are separately gated work; source import is not deployment.
 
 ## Frontend upstream
 
-Current shared frontend authority:
+Historical accepted frontend upstream baseline:
 
 - Repository: `9GotStory/pa-dashboard`
 - Source branch: `develop`
@@ -47,7 +51,10 @@ Public-only adaptations are intentionally limited to:
 - S2Health branding/metadata
 - removal of internal `/sync`, container rewrites, and GAS deployment concerns
 
-See `docs/frontend-upstream.md` for the synchronization boundary.
+See `docs/frontend-upstream.md` for the original frontend synchronization boundary,
+and `SOURCE_PROVENANCE.md` for the Backend-v2 exact-SHA import and database
+compatibility record. The `docs/system/` manual documents the public frontend
+release baseline and will receive a separate whole-repository update.
 
 ## Public API configuration
 
@@ -108,11 +115,28 @@ npm run build
 
 The export is written to `out/`.
 
+## Backend development and verification
+
+The import deliberately keeps the original `backend/package.json` and SQL files
+byte-identical to their verified source. Run these commands in a Node.js 24
+development environment (never against production data):
+
+```sh
+cd backend
+npm ci
+npm run typecheck
+npm run build
+node --test dist/test/*.unit.test.js dist/test/database-foundation.static.test.js
+```
+
+Tests requiring PostgreSQL must use an **isolated disposable PostgreSQL 18**
+database and an explicit authorization; do not use production credentials.
+
 ## Boundaries
 
-- This repository does not modify the private PostgreSQL or Fedora runtime.
+- Merging source alone does not alter the private PostgreSQL or Fedora runtime.
 - It does not contain database credentials, Tailscale auth keys, or secrets.
 - It does not expose the API container directly to LAN/WAN.
-- It does not use the legacy Google Apps Script data path.
+- Public KPI reads do not use the legacy Google Apps Script data path.
 - It does not import the internal `/sync` surface from `pa-dashboard`.
 - The existing `pa-dashboard` deployment remains independent.

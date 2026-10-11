@@ -1,0 +1,26 @@
+{
+  "name": "pa-dashboard-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/src/server.js",
+    "migrate": "node dist/src/db/migrate.js",
+    "reference:populate": "node dist/src/reference/populate.js",
+    "sync": "node dist/src/sync/run.js"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.2",
+    "@types/pg": "8.23.1",
+    "typescript": "5.9.3"
+  }
+}

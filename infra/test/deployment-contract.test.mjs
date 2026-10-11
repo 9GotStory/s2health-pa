@@ -79,9 +79,10 @@ test("sync and reference are manual only, not boot-triggered", async () => {
   const ref = await read("infra/quadlet/pa-dashboard-reference.container.in");
   const sync = await read("infra/quadlet/pa-dashboard-sync.container.in");
   for (const unit of [ref, sync]) {
-    assert.match(unit, /Type=oneshot/);
-    assert.match(unit, /@@PA_API_IMAGE@@/);
-    assert.doesNotMatch(unit, /\[Install\]|WantedBy=|RemainAfterExit=yes/);
+    const activeConfig = unit.split("\n").filter(line => !line.trimStart().startsWith("#")).join("\n");
+    assert.match(activeConfig, /Type=oneshot/);
+    assert.match(activeConfig, /@@PA_API_IMAGE@@/);
+    assert.doesNotMatch(activeConfig, /\[Install\]|WantedBy=|RemainAfterExit=yes/);
   }
   assert.match(ref, /Exec=node dist\/src\/reference\/populate\.js/);
   assert.match(sync, /Exec=node dist\/src\/sync\/run\.js/);

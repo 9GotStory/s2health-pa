@@ -80,3 +80,45 @@ jobs:
             echo 'Legacy Google Apps Script endpoint leaked into public frontend'
             exit 1
           fi
+
+  backend:
+    name: Backend Typecheck, Build and Unit Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Typecheck backend
+        run: npm run typecheck
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Run backend unit and static tests
+        run: node --test dist/test/*.unit.test.js dist/test/database-foundation.static.test.js
+
+      # Integration suites contain destructive schema-reset tests.
+      # They must be skipped on GitHub-hosted CI; isolated PostgreSQL
+      # integration verification requires a separate explicit test gate.
+      - name: Verify integration test safety guards without a database
+        run: node --test dist/test/*.integration.test.js
+        env:
+          TEST_DATABASE_URL: ""
+          PA_ALLOW_DESTRUCTIVE_DB_TESTS: ""
+          PA_REFERENCE_SOURCE_URL: ""
+          PA_ALLOW_EXTERNAL_REFERENCE_FETCH: ""

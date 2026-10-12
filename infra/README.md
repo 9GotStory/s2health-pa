@@ -116,7 +116,7 @@ PostgreSQL username and database name differ (actual identifiers are kept secret
 The PostgreSQL Quadlet template now uses:
 
 ```ini
-HealthCmd=pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}
+HealthCmd=pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}
 ```
 
 Explicit `-d` makes `pg_isready` check the configured `POSTGRES_DB` instead of

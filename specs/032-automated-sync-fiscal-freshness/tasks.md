@@ -3,7 +3,7 @@
 **Status:** P0 planning only / proposed implementation order. **No task below is authorized to mutate Production.**  
 **Source:** `main@8890e7bb087ae955252b074178860f113a45ca17`  
 **Branch:** `032-automated-sync-fiscal-freshness` / [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38) / [Draft PR #39](https://github.com/9GotStory/s2health-pa/pull/39)  
-**Inputs:** [spec.md](spec.md), [research.md](research.md), [plan.md](plan.md), [policy-proposals.md](policy-proposals.md)
+**Inputs:** [spec.md](spec.md), [research.md](research.md), [plan.md](plan.md), [policy-proposals.md](policy-proposals.md), [host-readonly-audit.md](host-readonly-audit.md)
 
 ## Working rules
 
@@ -17,8 +17,8 @@
 ## P0 — Product decisions and evidence (design-only, no host writes)
 
 - [ ] **T001 / Gate P0-A:** Approve/finalize [policy-proposals.md](policy-proposals.md): daily time/timezone/jitter, service deadline, missed-run handling, FY2569 freeze/backfill policy, first FY2570 gate, overdue/stale-source alert thresholds, retention and public UI scope. **Block all implementation if unresolved**.
-- [ ] **T002 / Gate P0-B:** Read-only host inventory of actual systemd/Podman version, host timezone, rootless user manager, journald retention, `websvc` Quadlet files and current timer list. Record only redacted evidence; no service restart.
-- [ ] **T003 / Gate P0-C:** Read-only metrics inventory (actual Prometheus/Grafana rule/receiver/exporter names, scrape health). Do not assume metric names, receivers or alert routes.
+- [ ] **T002 / Gate P0-B:** Run the read-only [Fedora evidence procedure](host-readonly-audit.md) to establish actual systemd/Podman versions, host timezone, rootless user manager, Quadlet source fingerprint and current timer inventory. Inspect journald retention separately if needed, without dumping payloads. Close only on observed/redacted host evidence; no service restart.
+- [ ] **T003 / Gate P0-C:** Run the read-only [monitoring baseline procedure](host-readonly-audit.md) for unit/container state and Prometheus config validation. Active rules, receiver routing and scrape health require a **separate**, redacted read-only inventory based on actual accessible endpoints. Do not assume metric names, receivers or alert routes.
 - [ ] **T004 / Gate P0-D:** Check FY2570 OpenData **read-only** across the 18 physical source definitions *only if source load/rate limits allow*; use limited deliberate sampling first. Record source shape, last update and data year, not raw patient records.
 - [ ] **T005 / Gate P0-E:** Independent exact-SHA review of Spec Kit docs, drift from `main`, permissions, and product decisions; mark design approved only after Human acceptance. Main merge requires its own separate approval.
 

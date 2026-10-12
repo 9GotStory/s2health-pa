@@ -19,7 +19,7 @@ Volume=pa-dashboard-db-data.volume:/var/lib/postgresql
 # against the container environment at runtime. Specify the actual database:
 # pg_isready defaults the database name to the user name if -d is omitted,
 # which can generate recurring DATABASE_DOES_NOT_EXIST logs while still ready.
-HealthCmd=pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}
+HealthCmd=pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}
 HealthStartPeriod=30s
 HealthInterval=10s
 HealthTimeout=5s

@@ -60,17 +60,28 @@ existing pa-dashboard-sync.service (Quadlet one-shot)
 
 Further Prometheus/Grafana inventories, alert rule creation, contact points, routing and notification delivery tests. Existing Phase-0 operator evidence is enough to know services are running; operational Sync status and logs must remain inspectable before enabling any timer. A mature automated alerting solution can be a separate enhancement.
 
-## Product decisions (not yet approved)
+## T001 — Minimum Product Policy (proposed, not yet accepted)
 
-| Decision | Proposal, not default |
-| --- | --- |
-| Schedule | Daily 08:00 Asia/Bangkok with up to 30 min jitter |
-| Catch-up | `Persistent=false` initially, test resume/reboot semantics |
-| Hard timeout | Derive from real 18-source retry bound; **30 minutes is provisional**, not proven |
-| Historical FY2569 | No unattended historic-year re-sync after rollover; explicit manual backfill authorization only |
-| FY2570 | Require rate-limited source-readiness evidence and first activation approval |
-| Freshness | Operator-only first; per-source marker coverage and age rather than global `MAX(date_com)` |
-| Public UI | No new UI/API features in the first Sync scheduler release |
+This is one small decision set covering **only** automated synchronization and fiscal-year behavior; it is not authority to enable a timer or change a live fiscal setting.
+
+| Policy | Recommended v1 decision | Test/guard |
+| --- | --- | --- |
+| Sync schedule | Once daily at 08:00 Asia/Bangkok, add 0–30 minute `RandomizedDelaySec` | Parse calendar under Fedora systemd 259; no unit enablement |
+| Missed periods | `Persistent=false` initially; never create queued multi-run catch-up | Test disabled/reboot/resume semantics; no overlap or repeat loop |
+| Request/job timeout | Bound each MOPH request and total worker execution; **30-minute job ceiling is a provisional review target**, not approved or latency-tested | Inject slow/hanging HTTP fixture and prove cancellation and previous active run preservation |
+| FY2569 after FY boundary | Historical published dataset remains accessible, no unattended FY2569 resync | Fail closed on an expired configured target; exceptional one-shot backfill requires explicit authorization |
+| FY2570 first dataset | Full 18-source readiness + separate owner authorization for FY/Q/area before any first publication | Missing/zero/mismatched FY data refuse activation; no calendar-only settings change |
+| Operator freshness | Use existing run timestamps and per-source update markers; no public API/UI change initially | Distinct last attempted/succeeded/activated and source marker validation |
+| Retry/crash | Only bounded transport retries; no automatic second Sync job after uncertain exit | Orphan `running` and succeeded-but-unactivated runs remain diagnosable, not silently promoted |
+| Monitoring | Preserve existing journald and `/api/v1/sync-status` operational evidence; advanced alerts deferred | No Grafana/Prometheus implementation prerequisite |
+
+**Decision Gate T001 remains OPEN** until the Product Owner explicitly accepts or changes these proposals. Once accepted, update exact policy values and authorize source-code implementation **separately**. No policy defaults should silently override Production `app_settings`.
+
+### T006 readiness (test design only, not RED implementation)
+
+The existing database test suite is at `backend/test/sync-orchestrator.integration.test.ts` and `backend/test/sync-transport-config-lock.integration.test.ts`. Its destructive guards require `TEST_DATABASE_URL` pointing to a database ending in `_test` and `PA_ALLOW_DESTRUCTIVE_DB_TESTS=YES`. `.github/workflows/ci.yml` deliberately runs integration tests with no DB and those guards unset, so a green GitHub CI result **does not prove isolated PostgreSQL integration PASS**. A separate disposable PostgreSQL 18 test run is mandatory before any merge involving Sync logic.
+
+RED cases for T006: authorized identity (year/quarter/province/district) allows reaching the first INSERT; absent/expired/mismatched scope rejects with zero new `sync_runs` rows, unchanged `app_settings` and unchanged `app_state.active_sync_run_id`; FY2570 wall-clock alone changes nothing; manual one-shot requires an explicit matching authority. Release digest attestation is a **host/OCI cutover verification**, not something to assume the process can cryptographically infer from an environment variable.
 
 ## Merge/production boundaries
 

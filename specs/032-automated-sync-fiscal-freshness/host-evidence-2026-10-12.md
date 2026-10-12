@@ -46,10 +46,23 @@
 | Actual active scrape targets | 2 configured active; 2 UP; 0 DOWN (16:47 +07) | PASS for scrape health at observation time; job identities not yet verified |
 | Prometheus recording/alert rules | 0 groups; 0 recording; 0 alerting | **No Prometheus-managed rules** at observation time |
 | Active external Alertmanager | 0 active endpoints reported via Prometheus API | **No active Prometheus-discovered Alertmanager** |
-| Grafana alert rules/contact points/policies | Not checked | PENDING; Prometheus findings do not establish Grafana state |
+| Grafana provisioning file count | Running; `alerting_FILES=0`, `datasources_FILES=1`, `dashboards_FILES=1` (read-only operator inspection, Oct 12) | PASS for **file census only**; no evidence of effective Grafana rules/contacts |
+| Grafana alert rules/contact points/policies | Effective Grafana UI/API state not checked | PENDING; zero alerting provisioning files does **not** prove absence of DB/UI-defined rules |
 | Notification delivery | Not checked (a dry-run requires a separate approved receiver test) | PENDING |
 
 **Observed Prometheus effective-state probe (2026-10-12 16:47 +07):** `/api/v1/rules` groups=0/alerting=0/recording=0; `/api/v1/targets?state=active` total=2/up=2/down=0; `/api/v1/alerts` active=0/firing=0; `/api/v1/alertmanagers` active=0. The read-only result validates current target connectivity, **not** PA metric coverage or alert readiness. Because no Prometheus-managed rules are installed, zero firing alerts must not be interpreted as an all-clear. Grafana-managed rules, contacts and delivery are still unknown. The [aggregate-only probe](monitoring-readonly-audit.md) is retained for future verification.
+
+### Grafana file census — operator evidence
+
+The operator queried the existing running Grafana container with `podman exec` and counted files in the standard provisioning directories only:
+
+- `STATE=running`
+- `alerting_FILES=0`
+- `datasources_FILES=1`
+- `dashboards_FILES=1`
+- `T003_GRAFANA_READ_ONLY=FINISHED`
+
+This does not enumerate effective Grafana-managed alert rules, notification contact points, policies or receivers persisted through the UI/database. A provisioning file can also be present without proving its configuration loaded successfully. **No secret, endpoint or actual rule content was exported.** The next step is an existing authenticated Grafana UI inspection recording **counts and high-level states only**, with no new login, token creation, configuration edits or notification test. See [Grafana read-only procedure](grafana-readonly-audit.md).
 
 ## 3. Risks remaining before implementation or production
 
@@ -63,7 +76,7 @@
 
 - **T001:** Product Owner policy decisions pending, and default 08:00+jitter is still unapproved.
 - **T002:** **PASS**, runtime inventory accepted from live operator evidence.
-- **T003:** **PARTIAL PASS**; Prometheus effective API **verified**: 2/2 targets UP, 0 managed rules, 0 active external Alertmanager. Grafana rules/contact routing and actual PA metric coverage/delivery are unverified.
+- **T003:** **PARTIAL PASS**; Prometheus 2/2 scrape targets UP, 0 managed rules, 0 external Alertmanager. Grafana running; alert provisioning files=0, datasource files=1, dashboard files=1. **Grafana effective rules, contacts, policy routing, delivery, and PA-specific metric coverage remain unverified.**
 - **T004:** FY2570 18-source readiness not yet checked; only earlier two sample sources returned empty.
 - **T005:** Specs remain reviewable/draft; Human acceptance and merge approval are separate.
 - **Production:** NO change, no sync run, no timer installation, no image cutover.

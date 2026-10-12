@@ -3,7 +3,7 @@
 **Status:** DRAFT — operator-run evidence collection only; **not** runtime authorization.  
 **Date:** 2026-10-12 (Asia/Bangkok)  
 **Tracking:** [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38) / [Draft PR #39](https://github.com/9GotStory/s2health-pa/pull/39)  
-**Related:** [tasks.md](tasks.md), [research.md](research.md), [policy-proposals.md](policy-proposals.md), [operator evidence 2026-10-12](host-evidence-2026-10-12.md)
+**Related:** [tasks.md](tasks.md), [research.md](research.md), [policy-proposals.md](policy-proposals.md), [operator evidence 2026-10-12](host-evidence-2026-10-12.md), [T003 monitoring probe](monitoring-readonly-audit.md)
 
 ## Purpose and trust boundary
 
@@ -147,8 +147,8 @@ This procedure checks Prometheus config syntax but does **not** enumerate active
 
 ## Observed 2026-10-12 host output
 
-The operator-run initial audit is [recorded separately](host-evidence-2026-10-12.md). Core user/one-shot/timer/calendar metadata passed, but Podman inventory failed due to a forbidden inherited working directory. Two hashed timers have not been attributed; Prometheus active rules/receivers and user manager long-lived state have not been fully proven. The follow-up uses `cd /` before Podman. **T002/T003 remain PARTIAL PASS.**
+The initial and follow-up operator evidence is [recorded here](host-evidence-2026-10-12.md). Podman inventory succeeded after changing to `/`. The two unidentified hash timers are Podman healthchecks, and the websvc user manager is active/running. **T002 PASS for Phase-0 runtime inventory. T003 PARTIAL PASS** pending effective rules, scrape targets, alert routing and delivery. See [monitoring-readonly-audit.md](monitoring-readonly-audit.md).
 
 ## Status and stop conditions
 
-**T002/T003 are NOT marked complete** by committing this document. Close only when real Fedora command output is independently reviewed and redacted. Fail closed on unexpected runtime owner, offline user manager, unexpected timer schedule or evidence of production drift. Do not edit host units or start synchronization.
+**T002 was closed on operator-observed host evidence. T003 remains open.** Close only when real Fedora command output is independently reviewed and redacted. Fail closed on unexpected runtime owner, offline user manager, unexpected timer schedule or evidence of production drift. Do not edit host units or start synchronization.

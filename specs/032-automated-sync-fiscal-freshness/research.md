@@ -1,94 +1,50 @@
-# Feature 032 — Research & Architecture Decision Record
+# Feature 032 — Source Review and Architecture Decisions
 
-**Status:** DRAFT — Independent architecture review; no host actions  
-**Evidence cutoff:** 2026-10-12 / `main@8890e7bb087ae955252b074178860f113a45ca17`  
-**Related:** [spec.md](spec.md), [plan.md](plan.md), [tasks.md](tasks.md), [policy-proposals.md](policy-proposals.md), [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38)
+**Status:** Draft technical assessment only; no implementation authorization  
+**Source inspected:** `9GotStory/s2health-pa` `main@8890e7bb087ae955252b074178860f113a45ca17`  
+**Companions:** [spec.md](spec.md) · [plan.md](plan.md) · [tasks.md](tasks.md)
 
-## 1. Verified facts vs unverified design assumptions
+## Existing Sync Engine (verified in repository)
 
-| Fact | Evidence | Implication |
+| Source | What already works | What Feature 032 should change |
 | --- | --- | --- |
-| Production one-shot recovery completed on 2026-10-12 | SQL + `/api/v1/sync-status`: active Run #2, FY2569 Q4, 18/18 sources, 11,141 source rows, 3,004 KPI rows; `/api/v1/kpis` has 47 entries | New baseline; **not** permission for recurring writes |
-| Last activation | `2026-10-12T08:35:41.704Z` (15:35:41 Asia/Bangkok) | Separate activation time from MOPH `date_com=202610120606` |
-| Current FY setting remains 2569/Q4 | Read-only PostgreSQL audit | Timer on existing unit would sync FY2569 |
-| OpenData FY2570 returned zero rows for `s_dm_screen`, `s_epi1` | User-executed POST probe returning HTTP 201, rows=0 | Do not assume remaining sources or FY2570 are ready |
-| OpenData FY2569 returned rows for all 18 sources | User-executed direct probe; HTTP 201 and nonempty arrays | Source connectivity verified **at that probe time**, not a future SLA |
-| Old Worker image used for recovery | `pa-dashboard-api@sha256:3ac723826d793f7394dc00c8e65a9949ee3398a7e29b682410e08f5c4800b535`, OCI source revision `0c70f3efce843b92b2a96c884bc036fde9f9f8dc` | Separate image-parity gate before scheduler enablement |
-| API image | `pa-dashboard-api@sha256:02552be6f42dde9570e24186f720c6b293dab70b68e36916947e12254a20430b`, revision `a3862692c7ffd8dda3c593fd029e1bb67b7fd68b` | Old Worker and API are not same revision |
-| Quadlet sync source | `infra/quadlet/pa-dashboard-sync.container.in` | Manual `Type=oneshot`, no Install/timer; requires migrate |
-| Public read contract | `backend/src/modules/read-api.ts`, `src/lib/dashboard-data.ts` | Active run consistency and public aggregate-only boundary remain |
-| Monitoring | Production Prometheus/Grafana and metrics exporter running; latest config/rules **not assessed in this phase** | Integration must inspect real metric names before proposing alert expressions |
+| `backend/src/sync/run.ts` | Creates DB pool, invokes one orchestration run, logs summary, exits nonzero on error | Reuse entrypoint; add safe preflight integration without changing manual compatibility |
+| `backend/src/sync/config.ts` | Reads `current_year`, `current_quarter`, `province_code` from PostgreSQL `app_settings`; validates 52 KPI definitions (18 physical, 34 virtual, 5 source-only) | Explicit independent approval for target FY/Q/geography; do not infer FY from current date |
+| `backend/src/sync/lock.ts` | Session `pg_try_advisory_lock(20260912,1)` and cleanup | Preserve; test overlap manual/timer and lock failure exit |
+| `backend/src/sync/moph-client.ts` | HTTPS POST to `report_data`, validates nonempty object arrays, transport retry max 3, inter-source jitter about 4–7s | Current `fetch` has **no explicit per-request abort timeout**; design a deadline, failed-source semantics and bounded retry |
+| `backend/src/sync/orchestrator.ts` | Creates `running` run, fetches/persists physical sources, calculates/persists KPI, marks succeeded and atomically activates | Gate **before** run INSERT; hard-kill and succeeded-but-not-activated reconciliation; avoid rewrites |
+| `backend/src/modules/read-api.ts` | Public `/dashboard`, `/kpis`, `/sync-status`; active run IDs; valid `date_com` global MAX for sourceLastUpdated | Per-source freshness read-only model, preserve existing public contract and Feature 031 |
+| `infra/quadlet/pa-dashboard-sync.container.in` | `Type=oneshot`, no install/timer; `Requires=pa-dashboard-migrate.service` | Package disabled user timer separately; **starting Sync can trigger migrate dependency**; prove safety before commissioning |
+| `backend/test/sync-*.test.ts` | Unit and isolated PostgreSQL integration suites already exist | Extend existing tests; do not invent a replacement test harness |
 
-## 2. Source audit and risks
+### Verified operational baseline (2026-10-12; historical evidence)
 
-- `backend/src/sync/config.ts` takes `current_year`, `current_quarter`, `province_code` from `app_settings` and derives fiscal year from year setting; **no automatic rollover**.
-- `backend/src/sync/moph-client.ts` sends HTTPS POST to `/api/report_data`, has bounded transport attempts (max 3), and rejects empty arrays. It accepts 12- and 14-digit source markers as raw data; source freshness normalization is a separate concern.
-- `backend/src/sync/lock.ts` implements PostgreSQL session advisory lock; do not replace or assume systemd alone provides cross-host exclusion.
-- `backend/src/sync/orchestrator.ts` creates a `running` run, saves sources and KPI results, transitions to `succeeded`, then atomically activates through `app_state`. It has explicit failure handling for source/calculation/persistence errors. A hard kill **may leave** an unfinished `running` run; reconciliation must be designed/tested, not inferred safe.
-- `backend/src/modules/read-api.ts` returns latest status, and dashboard source marker derives from `MAX(date_com)` on active run. A single newer source can mask other stale sources.
-- `infra/README.md` explicitly defers timer installation and enforces immutable OCI digests, isolated cutover gates and same existing service/volume topology.
-- `.github/workflows/pages.yml` deploys on `main` changes in frontend allowlist paths, not docs-only specs; draft PR is not a Pages deployment.
-- Existing FY2569/older Q4 dataset remains public if new FY data absent; no year-label inference from wall clock.
+Human-authorized one-shot FY2569/Q4 succeeded: active Run #2, 18/18 physical sources, 11,141 source rows, 3,004 KPI result rows, KPI catalog 47, latest valid source marker `202610120606`. Fedora `websvc` user manager active, Podman 5.8.4, systemd 259, Asia/Bangkok; `pa-dashboard-sync.service` loaded/inactive and `pa-dashboard-sync.timer` absent. Installed Sync worker image uses `pa-dashboard-api@sha256:3ac723826d793f7394dc00c8e65a9949ee3398a7e29b682410e08f5c4800b535` while running API uses `pa-dashboard-api@sha256:02552be6f42dde9570e24186f720c6b293dab70b68e36916947e12254a20430b`; do not assume image parity, auto-replace either one, or rerun Sync.
 
-## 3. Scheduler architecture alternatives
+Earlier FY2570 OpenData samples returned empty arrays for 2 of the 18 sources. **Not sufficient to declare all FY2570 sources unready or ready**; a full, rate-limited readiness check belongs to the dedicated fiscal gate.
 
-| Option | Advantages | Risks / decision |
-| --- | --- | --- |
-| **A. Rootless systemd timer → existing Quadlet one-shot** | Existing service identity, journald evidence, Podman/SELinux ownership, manual and scheduled entry point shared | **Preferred** subject to strict preflight, watchdog, image parity and separate enable gate |
-| B. Cron calling `podman run` | Simple | Duplicates scheduler and escapes service lifecycle/observability; reject |
-| C. Long-running in-API scheduler | One process to operate | Coupled to API uptime, multi-instance/redeploy race, DB permission surface; reject |
-| D. GitHub Actions/public service trigger | Convenient UI | Requires external production mutation endpoint and secrets; reject |
+Existing Prometheus syntax: valid; 2/2 live scrape targets UP; 0 managed Prometheus rules and 0 active external Alertmanager endpoints. Grafana runs with 0 static alert-provisioning files and 1 data-source/1 dashboard provisioning file. **Grafana UI-managed alerting is unknown**. Record as context only; not a feature design blocker and no further monitoring forensics in this PR.
 
-**Decision ADR-032-01 (proposed):** systemd user timer targeting `pa-dashboard-sync.service`; propose `Persistent=false` for initial commissioning to avoid automatic missed-calendar catch-up after downtime. This does **not** remove all suspend/resume activation semantics. A deployment test must prove `Unit=` references the correct service, no unintended initial start, correct Asia/Bangkok calendar interpretation, `RandomizedDelaySec`, bounded execution, and observable journal status. See [systemd.timer(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html) for catch-up, jitter and unit activation semantics.
+## Design decisions
 
-## 4. Fiscal year architecture
+1. **D032-A (preferred): Existing Sync + safe preflight**, not a new Sync engine. The guard must resolve an explicitly approved FY/Q/area and reviewed release reference **before `createRunningSyncRun`**. The approval mechanism itself needs code/test design; no implied Production permission.
+2. **D032-B (preferred): Rootless systemd timer**, `Unit=pa-dashboard-sync.service`, deployed disabled by default. A design suggestion is `08:00 Asia/Bangkok` with `RandomizedDelaySec=30m` and `Persistent=false`, all **unapproved**. Must inspect `Requires=pa-dashboard-migrate.service` so a timer cannot unexpectedly execute schema migrations.
+3. **D032-C (preferred): Explicit fiscal publication gate.** Keep `app_settings` as configured target until independently authorized. Define **calendar FY**, **configured FY**, **published FY** and **source-ready FY** separately. Do not silently promote last year's data to FY2570.
+4. **D032-D (preferred): Minimal freshness model first.** Preserve current public `sourceLastUpdated`/activation semantics. Provide operator-only per-source last valid marker, source count and missing/invalid markers via existing tables. An API extension/UI is a later optional approval, not a prerequisite.
+5. **D032-E (required): Failure transparency.** A hard stop can leave `running`; completed persistence can leave `succeeded` but not activated if activation fails. Flag these for operator review instead of silently retrying or changing the active pointer.
 
-- **Calendar FY:** Thailand government FY `2570` begins 2026-10-01. This does **not** imply MOPH endpoint is populated for that FY.
-- **Configured sync FY:** One-shot worker currently reads `app_settings.current_year`; automated runner must *not* change the setting implicitly.
-- **Source-ready FY:** verified against all 18 physical sources, valid FY and geographic scope, non-empty rows and meaningful KPI calculations; readiness evidence expires and is rechecked at activation.
-- **Published FY:** `sync_runs.fiscal_year/current_quarter` pinned to `app_state.active_sync_run_id`; user-visible dataset must use these values, not today.
-- **Decision ADR-032-02 (proposed):** maintain explicit Product Owner approval for first FY2570 publication. Read-only probe may operate independently from publication; no premature switch while FY2570 sources empty. Historical FY2569 remains in DB; true multi-year querying/presentation needs separate API and retention design and is not silently implied by storing historical runs.
+## Known gaps / implementation probes
 
-## 5. Freshness and status data architecture
+- Current MOPH `fetch` lacks explicit request timeout; transport catch/retry and per-source pacing exist. Verify expected MOPH latency in isolated tests before choosing job timeout.
+- `moph-client.ts` validates nonempty object arrays but does not itself prove every row belongs to the approved district/FY or contains a valid update marker; source semantics need focused, non-destructive tests.
+- The existing source freshness value is a **MAX across active source records**; one fresh source can mask stale or null `date_com` in others. Never claim whole-dataset freshness from that one value.
+- Host Sync Quadlet references migrate service, which uses `RemainAfterExit=yes`; cold boot/restart behavior deserves a targeted test. No schema migration is authorized by this draft.
+- Run lifecycle and lock already exist; preserve `sync_runs` audit and `app_state.active_sync_run_id` atomic activation, do not create a second scheduler that changes API/DB directly.
 
-Three different timestamps / concepts:
-1. `last_attempt_started_at` and `last_attempt_finished_at` (whether service executed).
-2. `last_successful_activation_at` from active successful `sync_runs` (when dataset was published).
-3. `source_date_com` per source, with parsed shape, original marker and unknown upstream timezone when not documented. Summaries should expose min/max/coverage and oldest/stale source counts; never rely only on global max.
+## Scope and release disposition
 
-A successful fetch does **not** necessarily mean source content was updated; some sources legitimately have unchanged counts. Explicit freshness policy per source/expected update window; avoid blanket daily freshness failure.
+**In 032:** safe target gate, bounded requests/interrupted-run handling, source-level freshness operator readout, explicit FY readiness, disabled timer source/templates, existing integration-test extensions.
 
-**Decision ADR-032-03 (proposed):** compute operator status from existing run/source records where feasible before adding any new public API or schema. Extend public API only if needed, as aggregate-only, backwards compatible and feature-gated; preserve `syncRunId` for all dataset-bound fields.
+**Separate backlog:** Prometheus/Grafana alert rules and delivery; multi-year public history selector; public write APIs; new KPI registry or calculation semantics.
 
-## 6. Failure model and required guards
-
-- **No sync attempt / timer absent:** alert on missing successful activation while distinguishing deliberate maintenance/disabled schedule.
-- **Transport/schema/empty source:** persist failed attempt, leave current active pointer unchanged; alert without dumping raw payload.
-- **Concurrent start:** DB advisory lock rejects competitor; systemd job state provides local deduplication, not database-wide exclusivity.
-- **Hard kill / host reboot:** potential orphan `running` row; define detection and **operator-controlled** reconciliation after DB evidence. Never automatically mark a partially written run succeeded.
-- **Timeout / delayed OpenData:** execution budget, bounded fetch retries/jitter, distinguish temporary upstream outage from semantic empty data.
-- **FY transition:** timer runs only authorized configured FY until explicit change approval; source-ready probe may be read-only; historical view is not re-labeled as FY2570.
-- **Wrong image digest:** fail deployment preflight before timer enablement; align API/sync/migrate revisions through a separate OCI/runtime cutover with rollback digest.
-- **Monitoring blind spot:** exporter/Prometheus/Grafana up does not imply rules/receiver/routing exist; verify labels, metric names and provision separately.
-
-## 7. Proposed release choreography (not authorized here)
-
-1. Approve specification and calendar/retention/alert policies.
-2. Implement and test in `s2health-pa` feature branch against disposable PostgreSQL; no live sync.
-3. Exact-SHA review/CI/security/contract/integration evidence; separate merge approval.
-4. OCI publish approval and immutable digest review; no automatic host deploy.
-5. Fedora host inspection, fresh backup with isolated restore and exact unit/image diff review; host cutover approval.
-6. Timer dry-run/static verification followed by **independent timer enablement authorization**; observe first scheduled execution and both API/run identities.
-7. FY2570 first activation gated by new evidence + explicit authority; no automatic fallback to partial/new FY.
-8. Document rollback: disable timer first, preserve last good active dataset, then approved host/service/image reversal; no automatic DB pointer rollback.
-
-## 8. Review findings
-
-- **F032-01 High:** Enabling a timer with FY2569/Q4 in current settings would repeatedly refresh last FY instead of moving to FY2570. Mitigation: explicit authorized-FY gate; do not enable now.
-- **F032-02 High:** Service can be invoked with historically different OCI image revision from running API. Mitigation: exact revision/digest parity or independently tested compatibility before scheduler cutover.
-- **F032-03 High:** Global `MAX(date_com)` overstates whole-dataset freshness. Mitigation: per-source freshness/coverage.
-- **F032-04 Medium:** Abrupt worker termination might leave a `running` entry. Mitigation: expiration detection, operator-controlled reconciliation, integration test.
-- **F032-05 Medium:** Timer catch-up after downtime can produce an unexpected write. Mitigation: preflight authorized FY, `Persistent` policy, initially disabled host timer and explicit commissioning.
-- **F032-06 Medium:** Systemd job exit success is not a substitute for verified active run + API consistency. Mitigation: post-run evidence, alarms and semantic checks.
-
-**Architecture review verdict:** **CONDITIONAL / NOT IMPLEMENTATION-READY.** Address policy decisions and test plans before the implementation gate.
+**Gate:** source-only review PASS does not authorize implementation. Product Owner policy acceptance and code implementation approval required separately; main merge, OCI, Fedora runtime, timer activation and FY2570 activation are independent approvals.

@@ -1,69 +1,58 @@
-# Feature 032 — Task Breakdown (Draft, NOT implementation authority)
+# Feature 032 — Focused Task List
 
-**Status:** P0 planning only / proposed implementation order. **No task below is authorized to mutate Production.**  
-**Source:** `main@8890e7bb087ae955252b074178860f113a45ca17`  
-**Branch:** `032-automated-sync-fiscal-freshness` / [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38) / [Draft PR #39](https://github.com/9GotStory/s2health-pa/pull/39)  
-**Inputs:** [spec.md](spec.md), [research.md](research.md), [plan.md](plan.md), [policy-proposals.md](policy-proposals.md), [host-readonly-audit.md](host-readonly-audit.md), [host-evidence-2026-10-12.md](host-evidence-2026-10-12.md)
+**Status:** Draft, no implementation authority. Based on [spec.md](spec.md), [research.md](research.md) and [plan.md](plan.md).  
+**Repository:** `9GotStory/s2health-pa`; base `main@8890e7bb087ae955252b074178860f113a45ca17`.  
+**Rule:** Unchecked tasks are not started. Production sync, FY changes, OCI, host installs, timer enablement and main merge each require separate approval.
 
-## Working rules
+The original **T001–T033 IDs are preserved** for traceability, but work is regrouped under the three actual feature goals. Monitoring implementation is deferred.
 
-- All unchecked task IDs below are **planned**, not started or assigned. **No standing authorization.**
-- Implementation will require a separate Product Owner approval, plus an updated exact-SHA baseline. Do not infer that a merged design document authorizes production write operations.
-- Work only in `9GotStory/s2health-pa`; avoid new development in `9GotStory/pa-dashboard`. Preserve byte-identical historical migrations, public KPI contract, Feature 031 cross-run consistency and prior service names.
-- One independent reviewer (this assistant), implementation author separated as agreed in the project workflow; do not reintroduce `codex-lead-reviewer` or `claude-developer`.
-- Never run tests requiring PostgreSQL write access against Production; use disposable PostgreSQL 18 for integration testing.
-- The last approved Production run is **#2**, FY2569/Q4, 18/18 sources, 11,141 source records, 3,004 KPI result records, source marker `202610120606`. Treat as **historical observation**, not immutable forecast or current-state proof in a later release.
+## P0 — Design policy / baseline (documentation-only)
 
-## P0 — Product decisions and evidence (design-only, no host writes)
+- [ ] **T001 — Owner policy:** Decide authorized Sync time/jitter/max deadline, missed-run policy, historical FY freeze/backfill, FY2570 first activation gate and operator-only freshness. See [plan.md](plan.md). A proposal is not acceptance.
+- [x] **T002 — Fedora baseline:** Read-only operator evidence: systemd 259, Podman 5.8.4, `websvc` UID1002, running rootless manager, `Linger=yes`; Sync one-shot inactive and named timer absent; transient timers are Podman healthchecks.
+- [x] **T003 — Monitoring boundary established, deep investigation DEFERRED:** Existing Prometheus/Grafana running; Prometheus 2/2 targets UP, managed alerting/recording rules=0, active external Alertmanagers=0; Grafana static provisioning alert files=0. This is **not** proof of alert delivery. More monitoring work is a separate backlog.
+- [ ] **T004 — FY2570 source readiness:** Rate-limited **read-only** MOPH checks with counts/scope/date metadata only; two prior source samples returned empty. No DB writes or raw rows in evidence.
+- [ ] **T005 — Design acceptance:** Exact-SHA independent review; obtain explicit Product Owner acceptance before authorizing code implementation. PR #39 remains Draft until separate merge approval.
 
-- [ ] **T001 / Gate P0-A:** Approve/finalize [policy-proposals.md](policy-proposals.md): daily time/timezone/jitter, service deadline, missed-run handling, FY2569 freeze/backfill policy, first FY2570 gate, overdue/stale-source alert thresholds, retention and public UI scope. **Block all implementation if unresolved**.
-- [x] **T002 / Gate P0-B (2026-10-12 Runtime Inventory: PASS):** Run the read-only [Fedora evidence procedure](host-readonly-audit.md) to establish actual systemd/Podman versions, host timezone, rootless user manager, Quadlet source fingerprint and current timer inventory. Inspect journald retention separately if needed, without dumping payloads. Follow-up [host evidence](host-evidence-2026-10-12.md) confirms an active websvc user manager, working Podman inventory and Podman healthcheck ownership of the transient timers. Close only on complete observed/redacted host evidence; no service restart.
-- [ ] **T003 / Gate P0-C:** Run the read-only [monitoring baseline procedure](host-readonly-audit.md) for unit/container state and Prometheus config validation. Live Prometheus API evidence (2026-10-12 16:47 +07): 2/2 targets UP, 0 managed rule groups (0 alerting/recording), 0 active external Alertmanagers, 0 active/firing alerts. Grafana provisioning census now verified (running; 0 alerting, 1 datasource, 1 dashboard files). **PARTIAL PASS**: effective Grafana UI/DB-managed rules, contacts, notification policies and PA target/metric coverage remain unverified. Use [Grafana read-only audit](grafana-readonly-audit.md) for count-only UI inventory; notification delivery testing remains a separate gate. See [T003 evidence findings](host-evidence-2026-10-12.md) and [Prometheus aggregate-only probe](monitoring-readonly-audit.md). Do not assume actual metric names or working notifications.
-- [ ] **T004 / Gate P0-D:** Check FY2570 OpenData **read-only** across the 18 physical source definitions *only if source load/rate limits allow*; use limited deliberate sampling first. Record source shape, last update and data year, not raw patient records.
-- [ ] **T005 / Gate P0-E:** Independent exact-SHA review of Spec Kit docs, drift from `main`, permissions, and product decisions; mark design approved only after Human acceptance. Main merge requires its own separate approval.
+## A — Safe existing Sync Engine (implementation gate required)
 
-## P1 — Safety guard and sync lifecycle (implementation gate required)
+- [ ] **T006 — RED target-policy tests:** FY/Q/province/district and approved release identity missing, stale or conflicting → reject before creating a run.
+- [ ] **T007 — GREEN preflight:** Enforce the policy before `createRunningSyncRun`; never alter `app_settings` on a timer tick.
+- [ ] **T008 — Lock tests:** Existing PostgreSQL advisory lock stops concurrent manual/timer invocations; retain transactional active-run publication.
+- [ ] **T009 — RED source tests:** 18 good sources; one empty/invalid/wrong FY/geography; row count correction; invalid dates.
+- [ ] **T010 — GREEN source checks:** Preserve 18 physical, 34 virtual, 5 source-only and 47 public KPIs; no calculation/target regression.
+- [ ] **T011 — Interrupted state tests:** Worker killed after running insert or between succeeded and active; fail safely and remain diagnosable.
+- [ ] **T012 — Recovery procedure:** No blind retry or automatic promotion of orphan; operator-controlled resolution, auditable.
+- [ ] **T013 — Disposable integration suite:** PostgreSQL 18, MOPH fixtures, API/dashboard/catalog same-run, timeout/abort and no-write-on-refusal.
 
-- [ ] **T006 [T001,T005]:** Add RED unit tests for approved-target guard: explicit FY/Q/province/district; missing/mismatched approval; no implicit `app_settings` mutation; robust selection of active dataset identity.
-- [ ] **T007 [T006]:** Implement the smallest runtime target-policy guard before the worker opens a writing sync run. Make authorized scope explicit, independently testable and fail-closed. No secrets in logs.
-- [ ] **T008 [T007]:** Verify and preserve existing PostgreSQL advisory lock and atomic activation; add concurrency RED/GREEN integration scenarios including simultaneous manual/timer attempts.
-- [ ] **T009 [T007]:** Add source payload validation tests: 18 sources, nonempty arrays, geographic/year evidence, malformed JSON, duplicate physical source, decreasing row counts; design criteria must not reject valid upstream corrections.
-- [ ] **T010 [T009]:** Implement source semantic validations with documented tolerances. Preserve `kpi_results` contract, 52 registry definitions/18 physical/34 virtual/5 source-only and 47 public KPI entries.
-- [ ] **T011 [T008,T010]:** Add crash/timeout tests where the service dies after run creation and after KPI completion but before activation. Orphaned `running` records must be detectable; no automatic success, pointer rollback or blind retry.
-- [ ] **T012 [T011]:** Implement auditable, operator-authorized recovery procedure for interrupted attempts; never silently overwrite old evidence. No schema modification without separate SQL review.
-- [ ] **T013 [T006-T012]:** Disposable PostgreSQL 18 integration suite: success, 17/18 failure, duplicate lock rejection, stopped worker, atomic run pointer, backward-compatible API/KPI contract and failure alerts. Require PASS before scheduler packaging.
+## B — FY policy and freshness (implementation gate required)
 
-## P2 — Timer packaging and host boundary (source implementation gate required)
+- [ ] **T019 — FY calendar tests:** Oct 1 Thai FY rollover never silently changes configured or published FY.
+- [ ] **T020 — Source readiness evaluator:** Bounded, read-only 18-source FY check; no patient/raw payload logs and no Production DB mutation.
+- [ ] **T021 — First publication policy:** FY2570 activation requires explicit separate approval plus fresh complete source evidence.
+- [ ] **T022 — Marker tests:** 12- and 14-digit `date_com`, invalid calendar values, unchanged and divergent per-source dates.
+- [ ] **T023 — Operator freshness:** Report last attempt, last activated run and **per-source** marker/coverage distinctly; preserve existing public `sourceLastUpdated` field.
+- [ ] **T024 — DEFERRED public UI/API extension:** Not required for v1; separate UX/contract/privacy approval if requested.
+- [ ] **T025 — DEFERRED alerting deployment:** Prometheus/Grafana rules, receivers and notification delivery are **outside Feature 032's core implementation**.
+- [ ] **T026 — Regression:** Existing KPI semantics and Feature 031 cross-run identity, source-only flags, raw-count and explicit zero targets.
 
-- [ ] **T014 [T001,T013]:** Add timer **template**, not installed unit: `Unit=pa-dashboard-sync.service`, explicit reviewable `OnCalendar`, jitter and timeout policy. Proposed `Persistent=false` until operator approves missed-run catch-up policy.
-- [ ] **T015 [T014]:** Extend staging-only renderer and static contract tests: timer target identity, compatible service type, no `Restart=always`, no automatic enablement/host install, immutable OCI digest, `websvc` isolation, no `--delete`.
-- [ ] **T016 [T015]:** Test `systemd-analyze calendar` and unit verification on compatible Fedora/systemd test host, plus missed-run/suspend semantics and DST/UTC presentation if applicable. Verify `Persistent=false` does **not** imply no wake-from-suspend handling.
-- [ ] **T017 [T016]:** Document operator runbook: timer disabled by default, inspect next trigger, disable action, journal/status capture, on-failure manual gate and backup/restore rollback procedure.
-- [ ] **T018 [T015]:** OCI provenance test across API/worker/migrate entrypoints and source revisions; identify release artifact, exact image digest and migration ledger compatibility. **No GHCR publication or host cutover here.**
+## C — Timer source and independently gated release (implementation/release gates required)
 
-## P3 — FY readiness, freshness and observability (implementation gate required)
+- [ ] **T014 — Timer template:** Rootless user timer targeting `pa-dashboard-sync.service`, disabled/uninstalled in source-only CI; values from approved policy.
+- [ ] **T015 — Renderer/contracts:** Test immutable image, correct calendar and service identity, no automatic start/enable, no production path replacement.
+- [ ] **T016 — Timer behavior tests:** systemd 259 calendar/jitter/missed ticks, reboot and timeout; no hidden retries.
+- [ ] **T017 — Operator runbook:** Evidence, disabling timer, inspecting failed runs and rollback with active dataset unchanged.
+- [ ] **T018 — Image/migration dependency review:** Verify immutable worker/API/migrate source/digest compatibility and `Requires=pa-dashboard-migrate.service` execution safety. No unapproved migration.
+- [ ] **T027 — Code independent review:** Exact SHA and clean disposable tests, security/scope and release provenance; obtain Product Owner approval.
+- [ ] **T028 — Code merge:** Separate explicit main-merge approval; consider Pages trigger only if frontend inputs changed.
+- [ ] **T029 — OCI publish:** Separate approval, exact GHCR digest and rollback reference. Publishing does not deploy.
+- [ ] **T030 — Fedora staged cutover:** Separate backup + isolated restore, exact unit diff, migration ledger; install proposed timer **disabled** only after host approval.
+- [ ] **T031 — Timer enablement:** Separate explicit authorization once a safe FY target and source readiness are proven; verify first scheduled run identity/results. Never enable while FY2569 remains unexpectedly configured after rollover.
+- [ ] **T032 — FY2570 first activation:** Independent gate from timer; never automatically promote on calendar alone. Does **not** need to wait for timer enablement if an approved one-shot rollover is chosen.
+- [ ] **T033 — Completion:** Postdeploy dashboard/catalog identity, data freshness labels, failure/rollback observation and docs/handoff.
 
-- [ ] **T019 [T001,T013]:** Add deterministic fiscal-calendar tests (Thai FY starts Oct 1, but configured FY and published FY stay explicit); no automatic switch merely from wall clock.
-- [ ] **T020 [T019]:** Implement read-only FY readiness evaluator for 18 physical sources, with rate limit, bounded failure, freshness evidence and no saved patient payloads. A sample of two empty FY2570 sources must not be treated as a full FY readiness census.
-- [ ] **T021 [T019,T020]:** Implement explicit operator-controlled first-FY2570 activation gate. Do not change `app_settings` as part of a calendar event; leave active FY2569 labeled FY2569 if FY2570 is unavailable.
-- [ ] **T022 [T001]:** RED tests for `date_com`: 12- and 14-digit values, invalid calendar, no timezone provenance, stable marker, distinct source freshness, global max hiding stale sources.
-- [ ] **T023 [T022]:** Add read-only operator freshness/status model: last attempt vs last succeeded/activated vs oldest/newest per-source input. Do not conflate service success with fresh source data.
-- [ ] **T024 [T023]:** If public exposure is explicitly approved, extend aggregate-only, backwards-compatible API response and frontend text/tests; include Feature 031 same-`syncRunId` gate. Otherwise keep ops-only.
-- [ ] **T025 [T003,T023]:** Build and test Prometheus/Grafana rule configuration **only against verified actual metric names and alert receiver policies**, with alerts for overdue sync, fail, orphan running, invalid source completeness, and stale source marker; no patient/credential data.
-- [ ] **T026 [T019-T025]:** Comprehensive regression: fiscal run IDs, KPI target snapshot/explicit zero, raw counts, source-only, reference mappings, API CORS, no secret exposure, frontend without changes and (if changed) Browser UAT.
+## Stop conditions
 
-## P4 — Independently authorized delivery gates (DO NOT run by default)
-
-- [ ] **T027 [T013,T018,T026]:** Independent review exact code SHA, CI/security results, SQL schema and release diff; Product Owner implementation acceptance before main merge.
-- [ ] **T028 [T027]:** Separate approval: PR merge to `main`, with GitHub Pages deployment impact review if frontend build inputs changed.
-- [ ] **T029 [T028]:** Separate approval: GHCR OCI publication, immutable SHA/tag and digest inspection; do not deploy by publishing.
-- [ ] **T030 [T029]:** Separate approval: Fedora staged Quadlet changes, fresh backup+isolated restore, migration ledger, rollback image digest, network/volume mapping and runtime service cutover. Timer must remain **disabled**.
-- [ ] **T031 [T030]:** Separate approval: timer **enablement**, after verified authorized FY target, complete sources, monitoring/receivers and current Prod status. Observe first scheduled run and public Active Run/KPI Catalog coherence; disable timer if issues occur.
-- [ ] **T032 [T020,T021,T031]:** **Additional independent authorization for FY2570** readiness/config switch/first activation. Verify active run and public fiscal labels with fresh evidence.
-- [ ] **T033 [T031,T032]:** Postdeploy smoke, monitoring observation, retention/rollback documentation, issue/PR audit evidence and final handoff.
-
-## Cross-cutting safety acceptance
-
-A deployment must **fail closed before writes** on wrong approved FY/Q/scope, wrong reviewed OCI digest or missing host-approval artifact; after a job starts, failure must **not activate** partial/corrupt data. A post-run `systemctl` success is not proof of a correct active dataset. Check PostgreSQL run counters and read API identities.
-
-**No code, timer, Production configuration or public API contract change is authorized by this task list.**
+- No approved target FY/Q/revision; incomplete/mismatched source data; active sync lock; orphan `running` run; unexpected migration execution; unreviewed OCI digest; missing backup/restore proof; or different Active Run/API identity.
+- A failed Sync must **never** activate incomplete data, and a systemd success alone does not prove API correctness.
+- A source-only Draft PR or accepted design **never grants standing Production authority**.

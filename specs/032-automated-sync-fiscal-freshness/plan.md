@@ -34,9 +34,9 @@ atomic app_state.active_sync_run_id -> Fastify read API -> GitHub Pages
 
 ## Stage P0 — Specification and architecture (this branch)
 
-**Deliverables:** `spec.md`, `research.md`, `plan.md`. Validate source facts, alternatives, privacy boundary, operational risks and testable acceptance. Do **not** create a running timer, start a sync, modify production configuration, or publish OCI images.
+**Deliverables:** `spec.md`, `research.md`, `plan.md`, draft `tasks.md`, and `policy-proposals.md`. Validate source facts, alternatives, privacy boundary, operational risks, operator decisions and testable acceptance. Do **not** create a running timer, start a sync, modify production configuration, or publish OCI images.
 
-**Exit gate:** Independent exact-SHA documentation-only review, draft PR, explicit Product Owner acceptance of scope and unresolved product policy. `tasks.md` may be generated after these policies are resolved.
+**Exit gate:** Independent exact-SHA documentation-only review, draft PR, explicit Product Owner acceptance of scope and unresolved product policy. The draft `tasks.md` is non-executable and intentionally remains blocked until policy decisions are accepted.
 
 ## Stage P1 — Core sync safety and test harness (future approval)
 
@@ -111,7 +111,7 @@ atomic app_state.active_sync_run_id -> Fastify read API -> GitHub Pages
 - [x] Direct FY2569 OpenData 18-source probe passed; FY2570 probe **incomplete** (2 samples empty).
 - [x] Fresh backup + isolated restore + cleanup succeeded for prior one-shot recovery.
 - [x] Architecture risk register drafted.
-- [ ] Schedule + freshness thresholds + historical backfill + FY2570 operator policy accepted.
+- [ ] Schedule + freshness thresholds + historical backfill + FY2570 operator policy accepted (see [policy-proposals.md](policy-proposals.md) and gate T001).
 - [ ] Spec/architecture independently reviewed on exact docs commit; Product Owner approval.
 - [ ] Implementation, CI, host, image and timer gates (all separate).
 

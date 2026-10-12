@@ -2,7 +2,7 @@
 
 **Status:** DRAFT — Independent architecture review; no host actions  
 **Evidence cutoff:** 2026-10-12 / `main@8890e7bb087ae955252b074178860f113a45ca17`  
-**Related:** [spec.md](spec.md), [plan.md](plan.md), [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38)
+**Related:** [spec.md](spec.md), [plan.md](plan.md), [tasks.md](tasks.md), [policy-proposals.md](policy-proposals.md), [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38)
 
 ## 1. Verified facts vs unverified design assumptions
 
@@ -39,7 +39,7 @@
 | C. Long-running in-API scheduler | One process to operate | Coupled to API uptime, multi-instance/redeploy race, DB permission surface; reject |
 | D. GitHub Actions/public service trigger | Convenient UI | Requires external production mutation endpoint and secrets; reject |
 
-**Decision ADR-032-01 (proposed):** systemd user timer targeting `pa-dashboard-sync.service`; `Persistent=true` only after evaluating catch-up behavior and FY gate. A deployment test must prove `Unit=` references the correct service, no unintended initial start, expected timezone, `RandomizedDelaySec` and bounded execution.
+**Decision ADR-032-01 (proposed):** systemd user timer targeting `pa-dashboard-sync.service`; propose `Persistent=false` for initial commissioning to avoid automatic missed-calendar catch-up after downtime. This does **not** remove all suspend/resume activation semantics. A deployment test must prove `Unit=` references the correct service, no unintended initial start, correct Asia/Bangkok calendar interpretation, `RandomizedDelaySec`, bounded execution, and observable journal status. See [systemd.timer(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html) for catch-up, jitter and unit activation semantics.
 
 ## 4. Fiscal year architecture
 

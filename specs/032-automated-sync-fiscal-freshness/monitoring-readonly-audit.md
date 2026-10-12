@@ -96,3 +96,28 @@ WEBSVC
 - Target health is a point-in-time observation and cannot prove PA-specific metric correctness.
 - The output must not contain raw scrape URLs, labels, source records, confidential metrics, receiver tokens or full configuration files.
 - T003 remains open until effective rules/target health plus the actual permitted Grafana/Alertmanager routing state are established. Any new alert rule or notification test requires its own approval.
+
+## Local query-filter validation (not Fedora evidence)
+
+The four jq projections (rules, targets, active alerts, external Alertmanager endpoints) were tested against synthetic minimal API responses with jq 1.7 and returned the expected numeric counts. This validates **projection logic only**; it is not evidence that Fedora has those targets, rules or receivers.
+
+The Prometheus API probe is deliberately **read-only**. It must not assume that Grafana alert rules or contact routing are reflected by Prometheus /api/v1/rules or /api/v1/alertmanagers.
+
+## Optional Grafana file-presence census (separate, non-authoritative)
+
+If needed, as websvc after cd /, inspect only the **count** of static Grafana alert provisioning files. This does not expose file contents, authentication tokens, contacts, target endpoints or effective Grafana rule status:
+
+~~~bash
+if podman container exists grafana; then
+  podman exec grafana sh -c '
+    d=/etc/grafana/provisioning/alerting
+    if test -d "$d"; then
+      find "$d" -type f | wc -l
+    else
+      echo "GRAFANA_ALERT_PROVISIONING_DIR=ABSENT"
+    fi
+  '
+fi
+~~~
+
+**Do not equate a nonzero file count with installed/active alert rules or tested notification delivery.** Effective Grafana rule and contact counts require a separately authorized, credential-safe read-only inspection of the actual Grafana API or administrative UI. Do not print or export tokens, contact-point details or credentials into the repository.

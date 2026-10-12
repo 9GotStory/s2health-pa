@@ -63,6 +63,11 @@ test("PostgreSQL retains actual old named volume and PG18 mount", async () => {
   assert.match(unit, /ContainerName=pa-dashboard-db/);
   assert.match(unit, /Volume=pa-dashboard-db-data\.volume:\/var\/lib\/postgresql/);
   assert.match(unit, /Network=pa-dashboard-app\.network/);
+  // Use POSTGRES_DB explicitly: pg_isready otherwise defaults to POSTGRES_USER.
+  assert.match(unit, /^HealthCmd=pg_isready -U \$\$\{POSTGRES_USER:-postgres\} -d \$\$\{POSTGRES_DB:-postgres\}$/m);
+  assert.equal(unit.split("\n").filter(line => line.startsWith("HealthCmd=")).length, 1);
+  assert.match(unit, /^HealthInterval=10s$/m);
+  assert.match(unit, /^Notify=healthy$/m);
   assert.doesNotMatch(unit, /PublishPort=/);
   assert.match(await read("infra/quadlet/pa-dashboard-db-data.volume"), /\[Volume\]/);
 });
@@ -98,6 +103,7 @@ test("renderer emits seven compatible units with pinned image digests and no web
     const dbUnit = await readFile(join(dir, "pa-dashboard-db.container"), "utf8");
     assert.ok(apiUnit.includes("Image=" + api));
     assert.ok(dbUnit.includes("Image=" + db));
+    assert.ok(dbUnit.split("\n").includes("HealthCmd=pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"));
     for (const name of renderedExpected.filter(n => n.endsWith(".container"))) {
       const unit = await readFile(join(dir, name), "utf8");
       assert.doesNotMatch(unit, /@@PA_[A-Z_]+@@/);

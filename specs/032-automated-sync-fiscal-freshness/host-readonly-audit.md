@@ -3,7 +3,7 @@
 **Status:** DRAFT — operator-run evidence collection only; **not** runtime authorization.  
 **Date:** 2026-10-12 (Asia/Bangkok)  
 **Tracking:** [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38) / [Draft PR #39](https://github.com/9GotStory/s2health-pa/pull/39)  
-**Related:** [tasks.md](tasks.md), [research.md](research.md), [policy-proposals.md](policy-proposals.md)
+**Related:** [tasks.md](tasks.md), [research.md](research.md), [policy-proposals.md](policy-proposals.md), [operator evidence 2026-10-12](host-evidence-2026-10-12.md)
 
 ## Purpose and trust boundary
 
@@ -144,6 +144,10 @@ This procedure checks Prometheus config syntax but does **not** enumerate active
 | Prometheus/Grafana | Container/service state, Prometheus config valid or error |
 | Actual alert rules/receivers | **Unknown until separate inspection** |
 | Production PostgreSQL | No queries/writes in this procedure; Run #2 is historical baseline |
+
+## Observed 2026-10-12 host output
+
+The operator-run initial audit is [recorded separately](host-evidence-2026-10-12.md). Core user/one-shot/timer/calendar metadata passed, but Podman inventory failed due to a forbidden inherited working directory. Two hashed timers have not been attributed; Prometheus active rules/receivers and user manager long-lived state have not been fully proven. The follow-up uses `cd /` before Podman. **T002/T003 remain PARTIAL PASS.**
 
 ## Status and stop conditions
 

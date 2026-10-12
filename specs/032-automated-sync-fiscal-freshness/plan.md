@@ -60,11 +60,11 @@ existing pa-dashboard-sync.service (Quadlet one-shot)
 
 Further Prometheus/Grafana inventories, alert rule creation, contact points, routing and notification delivery tests. Existing Phase-0 operator evidence is enough to know services are running; operational Sync status and logs must remain inspectable before enabling any timer. A mature automated alerting solution can be a separate enhancement.
 
-## T001 — Minimum Product Policy (proposed, not yet accepted)
+## T001 — Minimum Product Policy (ACCEPTED by Product Owner, 2026-10-12)
 
-This is one small decision set covering **only** automated synchronization and fiscal-year behavior; it is not authority to enable a timer or change a live fiscal setting.
+**Decision record:** Product Owner explicitly approved the T001 recommendations on 2026-10-12 (Asia/Bangkok). Approval applies to policy **for source design and T006 RED tests**, not implementation of production logic, PR merge, timer enablement, or a live fiscal-year change. Numeric 30-minute job ceiling is accepted **as a provisional test target**, not as a validated production timeout.
 
-| Policy | Recommended v1 decision | Test/guard |
+| Policy | Accepted v1 direction / bounded proposal | Test/guard |
 | --- | --- | --- |
 | Sync schedule | Once daily at 08:00 Asia/Bangkok, add 0–30 minute `RandomizedDelaySec` | Parse calendar under Fedora systemd 259; no unit enablement |
 | Missed periods | `Persistent=false` initially; never create queued multi-run catch-up | Test disabled/reboot/resume semantics; no overlap or repeat loop |
@@ -75,7 +75,7 @@ This is one small decision set covering **only** automated synchronization and f
 | Retry/crash | Only bounded transport retries; no automatic second Sync job after uncertain exit | Orphan `running` and succeeded-but-unactivated runs remain diagnosable, not silently promoted |
 | Monitoring | Preserve existing journald and `/api/v1/sync-status` operational evidence; advanced alerts deferred | No Grafana/Prometheus implementation prerequisite |
 
-**Decision Gate T001 remains OPEN** until the Product Owner explicitly accepts or changes these proposals. Once accepted, update exact policy values and authorize source-code implementation **separately**. No policy defaults should silently override Production `app_settings`.
+**T001 policy decision: ACCEPTED**, with the 30-minute ceiling provisional pending tail-latency and cancellation evidence. **T006 RED test authoring is authorized** on a separate development branch, with the assistant acting as independent reviewer rather than sole test author. T007+ production-code implementation, documentation PR merge, release, timer and FY2570 activation remain separate gates. Accepted policy must not silently override Production `app_settings`.
 
 ### T006 readiness (test design only, not RED implementation)
 

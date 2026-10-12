@@ -4,7 +4,7 @@
 **Created:** 2026-10-12 (Asia/Bangkok)  
 **Source authority:** `9GotStory/s2health-pa` `main@8890e7bb087ae955252b074178860f113a45ca17`  
 **Tracking:** [Issue #38](https://github.com/9GotStory/s2health-pa/issues/38)  
-**Companions:** [research.md](research.md), [plan.md](plan.md)
+**Companions:** [research.md](research.md), [plan.md](plan.md), [tasks.md](tasks.md), [policy-proposals.md](policy-proposals.md)
 
 ## Problem and verified baseline
 
@@ -66,4 +66,4 @@ Production mutations; timer install/enable/start; one-shot sync repeats; switchi
 4. Need for public status badges or FY history selectors; this may require a separate follow-on feature.
 5. Policy for interrupted `running` sync runs and retention of historical raw source payloads.
 
-**Decision gate:** Product Owner must accept this specification and architecture review before implementation tasks are authorized.
+**Decision gate:** Review [policy-proposals.md](policy-proposals.md) and the staged [tasks.md](tasks.md); Product Owner must accept the specification and architecture review before any implementation task is authorized.

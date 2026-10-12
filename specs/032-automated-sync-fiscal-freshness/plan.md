@@ -12,9 +12,9 @@ disabled-by-default websvc systemd timer (after future enable approval)
                  v
 existing pa-dashboard-sync.service (Quadlet one-shot)
                  |
-           approved target/image guard
-                 |
       existing PostgreSQL advisory lock
+                 |
+       approved FY/Q/geography guard
                  |
         existing 18-source MOPH client
                  |
@@ -31,7 +31,7 @@ existing pa-dashboard-sync.service (Quadlet one-shot)
 
 **Files likely involved:** `backend/src/sync/run.ts`, `config.ts`, `moph-client.ts`, `orchestrator.ts` and existing `backend/test/sync-*.test.ts`.
 
-1. Preserve current source/definition identity and `app_state` publication transaction; identify exact pre-INSERT point for a fail-closed approved FY/Q/geography and release guard.
+1. Preserve current source/definition identity and `app_state` publication transaction; insert the approved FY/Q/geography guard **under the existing advisory lock after configuration read and before a new run INSERT**. OCI source/digest parity is checked separately at release/cutover.
 2. Add RED→GREEN tests for authorized/mismatched/missing policy, 18 valid vs 17 valid sources, empty source, malformed payload, source corrections, source-only KPI, explicit zero target, concurrency and active-run immutability on failure.
 3. Add request timeout and bounded errors; handle interrupted `running` and unactivated `succeeded` states as operator-visible incidents with no blind auto-retry. No changes to previously applied migration SQL.
 4. Re-run isolated PostgreSQL 18 integration tests and existing public read/API regression tests; **never use Production DB for development tests**.

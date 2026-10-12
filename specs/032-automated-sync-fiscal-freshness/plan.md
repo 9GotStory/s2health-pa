@@ -34,7 +34,7 @@ atomic app_state.active_sync_run_id -> Fastify read API -> GitHub Pages
 
 ## Stage P0 — Specification and architecture (this branch)
 
-**Deliverables:** `spec.md`, `research.md`, `plan.md`, draft `tasks.md`, and `policy-proposals.md`. Validate source facts, alternatives, privacy boundary, operational risks, operator decisions and testable acceptance. Do **not** create a running timer, start a sync, modify production configuration, or publish OCI images.
+**Deliverables:** `spec.md`, `research.md`, `plan.md`, draft `tasks.md`, `policy-proposals.md`, and the read-only T002/T003 [host audit](host-readonly-audit.md). Validate source facts, alternatives, privacy boundary, operational risks, operator decisions and testable acceptance. Do **not** create a running timer, start a sync, modify production configuration, or publish OCI images.
 
 **Exit gate:** Independent exact-SHA documentation-only review, draft PR, explicit Product Owner acceptance of scope and unresolved product policy. The draft `tasks.md` is non-executable and intentionally remains blocked until policy decisions are accepted.
 

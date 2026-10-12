@@ -27,7 +27,7 @@ Existing Prometheus syntax: valid; 2/2 live scrape targets UP; 0 managed Prometh
 
 ## Design decisions
 
-1. **D032-A (preferred): Existing Sync + safe preflight**, not a new Sync engine. The guard must resolve an explicitly approved FY/Q/area and reviewed release reference **before `createRunningSyncRun`**. The approval mechanism itself needs code/test design; no implied Production permission.
+1. **D032-A (preferred): Existing Sync + safe preflight**, not a new Sync engine. `runMophSynchronization` currently enters the existing PostgreSQL advisory lock, loads `app_settings` and district scope, **then** calls `createRunningSyncRun`. The approved FY/Q/geography guard belongs **within that lock and before the INSERT**. OCI image/source digest identity is independently verified by the host release/cutover gate, not assumed provable inside the running worker. The approval mechanism needs code/test design; no implied Production permission.
 2. **D032-B (preferred): Rootless systemd timer**, `Unit=pa-dashboard-sync.service`, deployed disabled by default. A design suggestion is `08:00 Asia/Bangkok` with `RandomizedDelaySec=30m` and `Persistent=false`, all **unapproved**. Must inspect `Requires=pa-dashboard-migrate.service` so a timer cannot unexpectedly execute schema migrations.
 3. **D032-C (preferred): Explicit fiscal publication gate.** Keep `app_settings` as configured target until independently authorized. Define **calendar FY**, **configured FY**, **published FY** and **source-ready FY** separately. Do not silently promote last year's data to FY2570.
 4. **D032-D (preferred): Minimal freshness model first.** Preserve current public `sourceLastUpdated`/activation semantics. Provide operator-only per-source last valid marker, source count and missing/invalid markers via existing tables. An API extension/UI is a later optional approval, not a prerequisite.
@@ -40,6 +40,12 @@ Existing Prometheus syntax: valid; 2/2 live scrape targets UP; 0 managed Prometh
 - The existing source freshness value is a **MAX across active source records**; one fresh source can mask stale or null `date_com` in others. Never claim whole-dataset freshness from that one value.
 - Host Sync Quadlet references migrate service, which uses `RemainAfterExit=yes`; cold boot/restart behavior deserves a targeted test. No schema migration is authorized by this draft.
 - Run lifecycle and lock already exist; preserve `sync_runs` audit and `app_state.active_sync_run_id` atomic activation, do not create a second scheduler that changes API/DB directly.
+
+## Existing test harness and CI boundary
+
+The repository already has `backend/test/sync-orchestrator.integration.test.ts`, `backend/test/sync-transport-config-lock.integration.test.ts`, and `backend/test/sync-transport-config-lock.unit.test.ts`. The integration harness explicitly checks for a PostgreSQL **major version 18** database with a name ending in `_test`; one suite also requires `PA_ALLOW_DESTRUCTIVE_DB_TESTS=YES`, and it resets the public schema. Therefore **never run these suites against Production**.
+
+The GitHub `.github/workflows/ci.yml` backend job runs the integration executables with `TEST_DATABASE_URL=""` and `PA_ALLOW_DESTRUCTIVE_DB_TESTS=""`, intentionally exercising their **skip/safety path** only. Existing green CI confirms source build/unit/static contracts, **not integration suite PASS**. Source code implementation requires a separately authorized isolated PostgreSQL 18 test environment and an independent review of its results.
 
 ## Scope and release disposition
 

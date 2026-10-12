@@ -43,19 +43,19 @@
 | Private exporter service/container | Running | PASS state |
 | Private metrics collector service | Running | PASS state |
 | promtool check config /etc/prometheus/prometheus.yml | SUCCESS (syntax valid) | PASS syntax |
-| Actual active scrape targets | Not checked | PENDING |
-| Prometheus recording/alert rules | Not checked | PENDING |
-| Active external Alertmanager | Not checked | PENDING |
-| Grafana alert rules/contact points/policies | Not checked | PENDING |
+| Actual active scrape targets | 2 configured active; 2 UP; 0 DOWN (16:47 +07) | PASS for scrape health at observation time; job identities not yet verified |
+| Prometheus recording/alert rules | 0 groups; 0 recording; 0 alerting | **No Prometheus-managed rules** at observation time |
+| Active external Alertmanager | 0 active endpoints reported via Prometheus API | **No active Prometheus-discovered Alertmanager** |
+| Grafana alert rules/contact points/policies | Not checked | PENDING; Prometheus findings do not establish Grafana state |
 | Notification delivery | Not checked (a dry-run requires a separate approved receiver test) | PENDING |
 
-Prometheus syntax correctness and running exporters **do not** prove telemetry freshness, alert-rule installation, routed delivery or notification permissions. Use the [read-only aggregate API probe](monitoring-readonly-audit.md) next; it prints **counts and health states only**, never raw targets/metrics/secret-bearing endpoints.
+**Observed Prometheus effective-state probe (2026-10-12 16:47 +07):** `/api/v1/rules` groups=0/alerting=0/recording=0; `/api/v1/targets?state=active` total=2/up=2/down=0; `/api/v1/alerts` active=0/firing=0; `/api/v1/alertmanagers` active=0. The read-only result validates current target connectivity, **not** PA metric coverage or alert readiness. Because no Prometheus-managed rules are installed, zero firing alerts must not be interpreted as an all-clear. Grafana-managed rules, contacts and delivery are still unknown. The [aggregate-only probe](monitoring-readonly-audit.md) is retained for future verification.
 
 ## 3. Risks remaining before implementation or production
 
 - **F032-H05 High:** installed Sync Worker OCI source revision is historically older than running API OCI; review image compatibility and exact digest/source parity in a separately approved code/release gate.
 - **F032-H06 High:** last verified active data remains FY2569/Q4 and FY2570 readiness is not proven; do not enable a recurring Sync timer using current app_settings and do not change fiscal year automatically.
-- **F032-H07 Medium:** currently observed runtime gives no evidence of configured Prometheus/Grafana alerts or receivers; T003 must confirm the live effective state before any alerting work can be scoped.
+- **F032-H07 High (monitoring gap):** Prometheus has **zero configured effective alerting and recording rules and zero active external Alertmanager endpoints** at 2026-10-12 16:47 +07. Grafana-managed rules/contacts may exist but have not been inspected. T003 must verify Grafana state and PA target/metric coverage before alerting architecture can be finalized.
 - **F032-H08 Medium:** systemd transient healthcheck timers are unrelated to the named sync timer; do not stop them.
 - **F032-H09 Medium:** user-manager active now + Linger=yes do not constitute reboot survival testing. Stage that validation for the host release gate without perturbing Production during P0.
 
@@ -63,7 +63,7 @@ Prometheus syntax correctness and running exporters **do not** prove telemetry f
 
 - **T001:** Product Owner policy decisions pending, and default 08:00+jitter is still unapproved.
 - **T002:** **PASS**, runtime inventory accepted from live operator evidence.
-- **T003:** **PARTIAL PASS**; Prometheus API/alert counts and Grafana routing not proven.
+- **T003:** **PARTIAL PASS**; Prometheus effective API **verified**: 2/2 targets UP, 0 managed rules, 0 active external Alertmanager. Grafana rules/contact routing and actual PA metric coverage/delivery are unverified.
 - **T004:** FY2570 18-source readiness not yet checked; only earlier two sample sources returned empty.
 - **T005:** Specs remain reviewable/draft; Human acceptance and merge approval are separate.
 - **Production:** NO change, no sync run, no timer installation, no image cutover.

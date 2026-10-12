@@ -15,7 +15,7 @@ Network=pa-dashboard-app.network
 NetworkAlias=pa-dashboard-db
 EnvironmentFile=%h/.config/pa-dashboard/postgres.env
 Volume=pa-dashboard-db-data.volume:/var/lib/postgresql
-# $ escapes systemd expansion; the healthcheck shell expands these variables
+# $$ escapes systemd expansion; the healthcheck shell expands these variables
 # against the container environment at runtime. Specify the actual database:
 # pg_isready defaults the database name to the user name if -d is omitted,
 # which can generate recurring DATABASE_DOES_NOT_EXIST logs while still ready.

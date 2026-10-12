@@ -21,7 +21,7 @@ Production one-shot Sync succeeded: Active Run **#2**, FY **2569/Q4**, 18/18 phy
 
 ## Requirements
 
-- **R1 / Exact target gate:** Before creating a new `sync_runs` row, validate explicit human-authorized FY, quarter, province, district, and approved release/image identity against actual `app_settings` and worker identity. No policy/permission available → no write. Do not modify settings on a timer tick.
+- **R1 / Exact target gate:** With the existing PostgreSQL advisory lock held, and **before creating** a new `sync_runs` row, compare a separately authorized FY, quarter, province and district against the actual `app_settings` and derived district scope. Missing/expired/mismatched approval → no writing run. Do not modify settings on a timer tick. Verify source revision and immutable OCI image digests **at the distinct release/cutover gate**; do not claim the worker can cryptographically prove its own OCI digest from a mutable environment variable.
 - **R2 / Preserve core contract:** Use existing 18 physical sources, 34 virtual definitions and 5 source-only physical definitions (52 total; 47 public). Keep `pg_try_advisory_lock`, run-linked records, `succeeded` transition, and atomic `active_sync_run_id` activation; never activate incomplete/failed datasets.
 - **R3 / Controlled worker lifecycle:** Add an explicit HTTP timeout and bounded retry policy. Handle transport errors, invalid/empty source data, crashed/interrupted jobs and ambiguous exits without blind retries or automatic activation. No unrelated schema migration.
 - **R4 / Timer packaging:** Add a **disabled-by-default**, rootless systemd user timer targeting `pa-dashboard-sync.service`; calendar/time zone/jitter and skip-missed-run policy are proposed, not yet approved. Keep existing unit identity/network/volume. Never install or enable in this documentation gate.
@@ -35,7 +35,8 @@ Production one-shot Sync succeeded: Active Run **#2**, FY **2569/Q4**, 18/18 phy
 | Case | Expected |
 | --- | --- |
 | Authorized FY2569/Q4 manual/scheduled test with all 18 valid sources | New run `succeeded`, single atomic activate; dashboard/catalog run IDs agree |
-| Target FY/Q or worker digest differs from explicit approval | Reject **before** creating a writing run; previous active pointer unchanged |
+| Target FY/Q/geography differs from explicit approval | Reject **before** creating a writing run; previous active pointer unchanged |
+| OCI image/source digest differs from reviewed release | Block **host deployment/enablement gate**; no unapproved worker image cutover |
 | One of 18 sources is empty, malformed, unavailable or wrong-scope | Candidate not activated; old dataset remains readable |
 | Concurrent manual and scheduled start | Only one obtains PostgreSQL advisory lock |
 | Worker stops after creating `running` run | Orphan detectable, not automatically marked succeeded; operator reconciliation required |
@@ -47,6 +48,6 @@ Production one-shot Sync succeeded: Active Run **#2**, FY **2569/Q4**, 18/18 phy
 
 **Out of scope:** Grafana/Prometheus UI inventory, new alert delivery routes, historical multi-FY selector, KPI refactor, new deployment topology, Production database write or sync under this PR.
 
-**Owner decisions still required:** schedule (suggestion 08:00 Asia/Bangkok plus up to 30 min jitter), maximum execution time, missed-run behavior (suggest `Persistent=false`), FY2569 backfill/freeze policy, FY2570 first activation authority and source readiness, whether any status belongs on the public UI. **No default is accepted by silence.**
+**Owner decisions still required:** the minimal T001 policy set is in [plan.md](plan.md#t001--minimum-product-policy-proposed-not-yet-accepted). Proposals include 08:00 Asia/Bangkok plus 0–30m jitter, a provisional 30-minute ceiling, `Persistent=false`, no unattended FY2569 backfill, a separate FY2570 first activation gate and operator-only freshness v1. **No default is accepted by silence.**
 
 **Current authority:** Draft Spec Kit only. No Merge, code implementation, timer enablement, OCI publication, app setting mutation or Production Sync.

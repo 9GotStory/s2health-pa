@@ -103,7 +103,7 @@ test("renderer emits seven compatible units with pinned image digests and no web
     const dbUnit = await readFile(join(dir, "pa-dashboard-db.container"), "utf8");
     assert.ok(apiUnit.includes("Image=" + api));
     assert.ok(dbUnit.includes("Image=" + db));
-    assert.ok(dbUnit.split("\n").includes("HealthCmd=pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"));
+    assert.ok(dbUnit.split("\n").includes("HealthCmd=pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"));
     for (const name of renderedExpected.filter(n => n.endsWith(".container"))) {
       const unit = await readFile(join(dir, name), "utf8");
       assert.doesNotMatch(unit, /@@PA_[A-Z_]+@@/);

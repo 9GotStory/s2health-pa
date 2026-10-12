@@ -104,6 +104,42 @@ the production Quadlet directory.
    digest, current migration ledger, recorded rollback digest and operational
    checks. Live DB tests are prohibited.
 
+## G-06-H — PostgreSQL health-check log noise (source-only proposal)
+
+During 2026-10-12 read-only G-06 observation, Fedora PostgreSQL remained healthy
+and the deployed API/Web passed read-smoke, but DB user-systemd journal repeatedly
+recorded `DATABASE_DOES_NOT_EXIST` errors (~10-second cadence). A bounded
+diagnostic classified 93 of 93 errors in a fixed window as that category.
+The installed health-check had no explicit database argument and the configured
+PostgreSQL username and database name differ (actual identifiers are kept secret).
+
+The PostgreSQL Quadlet template now uses:
+
+```ini
+HealthCmd=pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}
+```
+
+Explicit `-d` makes `pg_isready` check the configured `POSTGRES_DB` instead of
+defaulting the database name to the login username. This only changes source
+health-check configuration: DB image/volume/port/network, `HealthInterval=10s`,
+and `Notify=healthy` are unchanged. The source deployment-contract tests
+require the exact command in both template and rendered output.
+
+**This source patch is NOT a Fedora change.** Never copy rendered Quadlets into
+the installed unit folder or restart the PostgreSQL container based on this
+repository change alone. In particular, DB unit restart may propagate to
+migration/API/Web dependencies and cause downtime; an explicit separate Human
+Product Owner maintenance approval is required.
+
+Before any production maintenance, validate the effective installed DB unit,
+prechange file SHA-256, target command and variable expansion, preserved volume
+at `/var/lib/postgresql`, protected logical backup and isolated restore proof,
+and exact rollback source. After an independently authorized restart, check
+database health, unchanged volume and migrations, active sync run, API/Web proxy,
+and whether **new** `DATABASE_DOES_NOT_EXIST` journal events stop. Historical
+journal entries need not be deleted. See [G-06-H issue #43](https://github.com/9GotStory/s2health-pa/issues/43)
+and [G-06 observation #40](https://github.com/9GotStory/s2health-pa/issues/40).
+
 ## Excluded from G-03
 
 No GHCR image publication, no OCI tags, no GitHub Pages release, no host

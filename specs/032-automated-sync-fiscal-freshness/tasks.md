@@ -8,7 +8,7 @@ The original **T001–T033 IDs are preserved** for traceability, but work is reg
 
 ## P0 — Design policy / baseline (documentation-only)
 
-- [ ] **T001 — Owner policy:** Decide authorized Sync time/jitter/max deadline, missed-run policy, historical FY freeze/backfill, FY2570 first activation gate and operator-only freshness. See [plan.md](plan.md). A proposal is not acceptance.
+- [ ] **T001 — Owner policy (READY FOR REVIEW, not yet accepted):** Proposed minimal decisions are consolidated in [plan.md](plan.md#t001--minimum-product-policy-proposed-not-yet-accepted): daily 08:00 + jitter, provisional 30-minute ceiling pending latency testing, `Persistent=false`, freeze unattended FY2569 backfill, explicit FY2570 gate, operator-only freshness. Obtain explicit Human acceptance before implementation. No proposal is accepted by silence.
 - [x] **T002 — Fedora baseline:** Read-only operator evidence: systemd 259, Podman 5.8.4, `websvc` UID1002, running rootless manager, `Linger=yes`; Sync one-shot inactive and named timer absent; transient timers are Podman healthchecks.
 - [x] **T003 — Monitoring boundary established, deep investigation DEFERRED:** Existing Prometheus/Grafana running; Prometheus 2/2 targets UP, managed alerting/recording rules=0, active external Alertmanagers=0; Grafana static provisioning alert files=0. This is **not** proof of alert delivery. More monitoring work is a separate backlog.
 - [ ] **T004 — FY2570 source readiness:** Rate-limited **read-only** MOPH checks with counts/scope/date metadata only; two prior source samples returned empty. No DB writes or raw rows in evidence.
@@ -16,14 +16,14 @@ The original **T001–T033 IDs are preserved** for traceability, but work is reg
 
 ## A — Safe existing Sync Engine (implementation gate required)
 
-- [ ] **T006 — RED target-policy tests:** FY/Q/province/district and approved release identity missing, stale or conflicting → reject before creating a run.
+- [ ] **T006 — RED target-policy tests (design READY, implementation NOT authorized):** Inside advisory lock, test approved vs missing/expired/mismatched FY/Q/province/district. Refusal must produce **zero new sync_runs** and no changes to `app_settings` or `app_state.active_sync_run_id`. Manual one-shot requires matching authority too. Test OCI digest/source at a **separate host release gate**, not through a mutable worker env claim. Extend existing `backend/test/sync-orchestrator.integration.test.ts` with fake MOPH client.
 - [ ] **T007 — GREEN preflight:** Enforce the policy before `createRunningSyncRun`; never alter `app_settings` on a timer tick.
 - [ ] **T008 — Lock tests:** Existing PostgreSQL advisory lock stops concurrent manual/timer invocations; retain transactional active-run publication.
 - [ ] **T009 — RED source tests:** 18 good sources; one empty/invalid/wrong FY/geography; row count correction; invalid dates.
 - [ ] **T010 — GREEN source checks:** Preserve 18 physical, 34 virtual, 5 source-only and 47 public KPIs; no calculation/target regression.
 - [ ] **T011 — Interrupted state tests:** Worker killed after running insert or between succeeded and active; fail safely and remain diagnosable.
 - [ ] **T012 — Recovery procedure:** No blind retry or automatic promotion of orphan; operator-controlled resolution, auditable.
-- [ ] **T013 — Disposable integration suite:** PostgreSQL 18, MOPH fixtures, API/dashboard/catalog same-run, timeout/abort and no-write-on-refusal.
+- [ ] **T013 — Disposable integration suite:** PostgreSQL 18, MOPH fixtures, API/dashboard/catalog same-run, timeout/abort and no-write-on-refusal. The existing DB integration suites reset the schema and require `TEST_DATABASE_URL` pointing to a `_test` DB plus deliberate destructive-test consent. GitHub CI intentionally **skips** real DB integrations; CI SUCCESS is not integration PASS.
 
 ## B — FY policy and freshness (implementation gate required)
 

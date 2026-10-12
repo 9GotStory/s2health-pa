@@ -48,6 +48,10 @@ WEBSVC
 )
 ~~~
 
+## Observed Fedora result — 2026-10-12
+
+The human operator ran the preceding read-only inspection and reported **`STATE=running`**, **`alerting_FILES=0`**, **`datasources_FILES=1`** and **`dashboards_FILES=1`**. Thus the static Grafana file-presence census is **COMPLETE**; this does **not** establish active or absent Grafana-managed alert rules, effective contacts, data source availability, routing policies or delivery. Do not repeat this census just to infer alert readiness. The next evidence gap is the UI inventory below.
+
 ## 2. Effective Grafana alerting inventory (UI, authenticated read-only)
 
 If the operator already has legitimate access to the **existing** Grafana UI, sign in directly. Do **not** paste the session token, password, screenshot with contact addresses or exported JSON into a chat or GitHub issue.

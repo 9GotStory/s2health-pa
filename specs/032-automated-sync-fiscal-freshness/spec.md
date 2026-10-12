@@ -48,6 +48,6 @@ Production one-shot Sync succeeded: Active Run **#2**, FY **2569/Q4**, 18/18 phy
 
 **Out of scope:** Grafana/Prometheus UI inventory, new alert delivery routes, historical multi-FY selector, KPI refactor, new deployment topology, Production database write or sync under this PR.
 
-**Owner decisions still required:** the minimal T001 policy set is in [plan.md](plan.md#t001--minimum-product-policy-proposed-not-yet-accepted). Proposals include 08:00 Asia/Bangkok plus 0–30m jitter, a provisional 30-minute ceiling, `Persistent=false`, no unattended FY2569 backfill, a separate FY2570 first activation gate and operator-only freshness v1. **No default is accepted by silence.**
+**T001 decision (APPROVED 2026-10-12):** The [minimum Sync policy](plan.md) is accepted for RED test design: daily 08:00 Asia/Bangkok with 0–30m jitter, Persistent=false, no unattended FY2569 historical resync, FY2570 gated first publication and operator-only freshness. The suggested 30-minute timeout is provisional pending performance tests. [T006 developer issue #41](https://github.com/9GotStory/s2health-pa/issues/41) is authorized for test authoring only, not a production deploy.
 
 **Current authority:** Draft Spec Kit only. No Merge, code implementation, timer enablement, OCI publication, app setting mutation or Production Sync.

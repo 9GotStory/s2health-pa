@@ -20,6 +20,7 @@ const snapshot = {
 const valid = Object.freeze({
   schemaVersion: 1,
   approvalId: "approved-unit-fixture",
+  runMode: "manual",
   fiscalYear: 2569,
   currentQuarter: 4,
   provinceCode: "54",
@@ -29,7 +30,7 @@ const valid = Object.freeze({
 });
 
 test("T007: matching separately-provisioned policy has strict target/time", () => {
-  const result = assertApprovedSyncTarget(valid, snapshot, "5406", now);
+  const result = assertApprovedSyncTarget(valid, snapshot, "5406", now, "manual");
   assert.equal(result.approvalId, valid.approvalId);
   assert.equal(Object.isFrozen(result), true);
 });
@@ -42,6 +43,7 @@ test("T007: reject invalid, expired, mismatched, overlong and forged policy", as
     ["missing version", { ...valid, schemaVersion: undefined }],
     ["other version", { ...valid, schemaVersion: 2 }],
     ["missing ID", { ...valid, approvalId: "" }],
+    ["wrong run mode", { ...valid, runMode: "scheduled" }],
     ["wrong FY", { ...valid, fiscalYear: 2570 }],
     ["wrong quarter", { ...valid, currentQuarter: 1 }],
     ["wrong province", { ...valid, provinceCode: "55" }],
@@ -58,7 +60,7 @@ test("T007: reject invalid, expired, mismatched, overlong and forged policy", as
   for (const [label, policy] of cases) {
     await t.test(label, () => {
       assert.throws(
-        () => assertApprovedSyncTarget(policy, snapshot, "5406", now),
+        () => assertApprovedSyncTarget(policy, snapshot, "5406", now, "manual"),
         SyncAuthorizationError,
       );
     });
@@ -93,4 +95,24 @@ test("T007: protected file provider does not accept a directory", async () => {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+});
+
+test("T007: scheduled run refuses FY2569 after Oct 2026 fiscal rollover", () => {
+  assert.throws(
+    () => assertApprovedSyncTarget(
+      { ...valid, runMode: "scheduled" },
+      snapshot,
+      "5406",
+      now,
+      "scheduled",
+    ),
+    SyncAuthorizationError,
+  );
+});
+
+test("T007: a manual backfill remains possible only with explicit manual authority", () => {
+  const result = assertApprovedSyncTarget(
+    valid, snapshot, "5406", now, "manual",
+  );
+  assert.equal(result.runMode, "manual");
 });

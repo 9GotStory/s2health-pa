@@ -23,6 +23,9 @@ import type {
  * The future T007 change must make them pass by rejecting before that INSERT.
  */
 interface ApprovedSyncTarget {
+  readonly schemaVersion: 1;
+  readonly approvalId: string;
+  readonly issuedAt: string;
   readonly fiscalYear: number;
   readonly currentQuarter: number;
   readonly provinceCode: string;
@@ -34,6 +37,9 @@ const INSERT_PROBE = "T006_PROBE_UNAUTHORIZED_SYNC_RUN_INSERT";
 const fixedTime = new Date("2026-10-12T10:00:00.000Z");
 
 const approved: ApprovedSyncTarget = Object.freeze({
+  schemaVersion: 1,
+  approvalId: "t006-test-authority",
+  issuedAt: "2026-10-11T10:00:00.000Z",
   fiscalYear: 2569,
   currentQuarter: 4,
   provinceCode: "54",
@@ -275,10 +281,33 @@ test("T006 RED: reject unauthorized sync targets before any run INSERT", async (
   }
 });
 
-test("T006 control: a matching test authority may reach the first run INSERT", async () => {
+test("T007: a matching self-asserted target is not an authorization", async () => {
   const probe = createSqlProbe();
   const error = await observeAttempt(probe, approved);
 
+  assert.equal(probe.writingAttempts.length, 0);
+  assert.equal(probe.state.fetchedSources, 0);
+  assert.equal(probe.state.lockAcquired, 1);
+  assert.equal(probe.state.lockReleased, 1);
+  assert.equal(probe.state.clientReleased, 1);
+  assert.ok(error instanceof Error);
+  assert.match(error.message, /authoriz|approv|policy|target/i);
+});
+
+test("T007: an explicitly injected test approval provider allows a matching target", async () => {
+  const probe = createSqlProbe();
+  let seen = 0;
+  let error: unknown;
+  try {
+    await runMophSynchronization(probe.pool, {
+      now: () => new Date(fixedTime),
+      mophClient: fakeMophClient(probe.state),
+      approvalProvider: async () => { seen += 1; return approved; },
+    });
+  } catch (caught) {
+    error = caught;
+  }
+  assert.equal(seen, 1);
   assert.equal(probe.writingAttempts.length, 1);
   assert.equal(probe.state.fetchedSources, 0);
   assert.equal(probe.state.lockAcquired, 1);

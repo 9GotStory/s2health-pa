@@ -141,8 +141,8 @@ test("T007: a current FY2570 scheduled approval is allowed under the same guard"
 test("T007: scheduled run rejects next quarter even within current FY", () => {
   assert.throws(
     () => assertApprovedSyncTarget(
-      { ...valid, runMode: "scheduled", currentQuarter: 2 },
-      { ...snapshot, currentQuarter: 2 } as SyncConfigSnapshot,
+      { ...valid, runMode: "scheduled", fiscalYear: 2570, currentQuarter: 2 },
+      { ...snapshot, fiscalYear: 2570, currentQuarter: 2 } as SyncConfigSnapshot,
       "5406",
       now,
       "scheduled",

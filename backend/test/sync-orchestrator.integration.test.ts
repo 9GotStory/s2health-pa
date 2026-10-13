@@ -174,6 +174,22 @@ async function countKpiResults(
   ).count;
 }
 
+// Test-only approval provenance fixture. Production must use the protected
+// operator-file provider; never convert this fixture into a runtime bypass.
+function trustedApprovalForIntegration() {
+  return {
+    schemaVersion: 1 as const,
+    approvalId: "pg18-integration-authorized",
+    runMode: "manual" as const,
+    fiscalYear: 2569,
+    currentQuarter: 4,
+    provinceCode: "54",
+    districtAreaPrefix: "5406",
+    issuedAt: "2026-09-30T10:00:00.000Z",
+    expiresAt: "2026-10-13T10:00:00.000Z",
+  };
+}
+
 function createDeterministicClock():
   () => Date {
   let next =
@@ -825,6 +841,9 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  runMode: "manual",
+
+                  approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
 
@@ -1398,6 +1417,9 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  runMode: "manual",
+
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
 
@@ -1629,6 +1651,9 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  runMode: "manual",
+
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
 
@@ -1802,6 +1827,9 @@ test(
 
                     now:
                       createDeterministicClock(),
+                  runMode: "manual",
+
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                   },
                 ),
 
@@ -1940,6 +1968,9 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  runMode: "manual",
+
+                  approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
 
@@ -2062,6 +2093,129 @@ test(
           );
         },
       );
+
+      await t.test(
+        "T007 GREEN: an unapproved FY/Q/district must not create a sync run",
+        async (gateTests) => {
+          const snapshot = await loadSnapshot(pool);
+
+          const baseApproval = {
+            schemaVersion: 1 as const,
+            approvalId: "pg18-fixture-rejected-case",
+            runMode: "manual" as const,
+            issuedAt: "2026-09-30T10:00:00.000Z",
+            fiscalYear: snapshot.fiscalYear,
+            currentQuarter: snapshot.currentQuarter,
+            provinceCode: snapshot.provinceCode,
+            districtAreaPrefix: "5406",
+            expiresAt: "2026-10-13T10:00:00.000Z",
+          };
+
+          const cases: ReadonlyArray<{
+            name: string;
+            approval?: typeof baseApproval;
+          }> = [
+            { name: "missing approval" },
+            { name: "wrong FY", approval: { ...baseApproval, fiscalYear: 2570 } },
+            { name: "wrong quarter", approval: { ...baseApproval, currentQuarter: 1 } },
+            { name: "wrong province", approval: { ...baseApproval, provinceCode: "55" } },
+            { name: "wrong district", approval: { ...baseApproval, districtAreaPrefix: "5499" } },
+            {
+              name: "expired approval",
+              approval: { ...baseApproval, expiresAt: "2026-09-30T10:00:00.000Z" },
+            },
+          ];
+
+          const failureSheet = requireDefined(
+            snapshot.physicalDefinitions[0],
+            "first physical source",
+          ).sourceSheet;
+
+          const selectRunCount = async (): Promise<number> => {
+            const result = await pool.query<{
+              readonly count: number;
+            }>("SELECT COUNT(*)::INTEGER AS count FROM sync_runs");
+            return requireDefined(result.rows[0], "sync run count").count;
+          };
+
+          const selectSettings = async () => {
+            const result = await pool.query<{
+              readonly key: string;
+              readonly value: unknown;
+            }>(
+              "SELECT key, value FROM app_settings " +
+              "WHERE key IN ('current_year', 'current_quarter', " +
+              "'province_code', 'district_area_prefix') ORDER BY key",
+            );
+            return result.rows;
+          };
+
+          for (const scenario of cases) {
+            await gateTests.test(scenario.name, async () => {
+              const beforeCount = await selectRunCount();
+              const beforeSettings = await selectSettings();
+              const beforeActive = await readActiveSyncRunId(pool);
+
+              // The injected source failure keeps the old active dataset
+              // unchanged even with the missing guard. The invariant being
+              // tested is stronger: zero new DB run rows and zero MOPH calls.
+              const fake = createFakeMophClient({
+                rowsBySheet: buildFakeRowsBySheet(snapshot),
+                failingSheets: new Set([failureSheet]),
+              });
+
+              const dependencies = {
+                mophClient: fake.client,
+                now: createDeterministicClock(),
+                runMode: "manual" as const,
+                ...(scenario.approval === undefined
+                  ? {}
+                  : {
+                      // This is an explicitly injected test authority; the
+                      // untrusted approvedTarget property alone is ignored.
+                      approvedTarget: scenario.approval,
+                      runMode: "manual" as const,
+                      approvalProvider: async () => scenario.approval,
+                    }),
+              };
+
+              let capturedError: unknown;
+              try {
+                await runMophSynchronization(pool, dependencies);
+              } catch (error) {
+                capturedError = error;
+              }
+
+              const afterCount = await selectRunCount();
+              const afterSettings = await selectSettings();
+              const afterActive = await readActiveSyncRunId(pool);
+
+              assert.equal(
+                afterCount,
+                beforeCount,
+                scenario.name + ": rejected target must not INSERT sync_runs",
+              );
+              assert.equal(
+                fake.fetchRequests.length,
+                0,
+                "rejected target must not fetch any MOPH source",
+              );
+              assert.deepEqual(afterSettings, beforeSettings);
+              assert.equal(afterActive, beforeActive);
+              assert.ok(
+                capturedError instanceof Error,
+                "rejected target must throw",
+              );
+              assert.match(
+                capturedError.message,
+                /authoriz|approv|policy|target/i,
+                "rejection must be target authorization, not a source failure",
+              );
+            });
+          }
+        },
+      );
+
     } finally {
       try {
         await resetPublicSchema(

@@ -55,6 +55,11 @@ created=0
 cleanup() {
   if test "$created" = 1; then
     podman rm -f "$name" >/dev/null 2>&1 || true
+    if podman container exists "$name"; then
+      echo "TEMP_CONTAINER_CLEANUP=FAILED" >&2
+    else
+      echo "TEMP_CONTAINER_CLEANUP=PASS"
+    fi
   fi
   rm -rf -- "$tmp"
 }
@@ -142,4 +147,4 @@ for suite in sync-orchestrator sync-transport-config-lock; do
 done
 unset url
 echo "T007_PG18_GREEN=PASS"
-echo "TEMP_CONTAINER=AUTOMATIC_CLEANUP_ON_EXIT"
+echo "TEMP_CONTAINER_CLEANUP=CHECK_ON_EXIT"

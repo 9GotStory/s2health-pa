@@ -8,11 +8,18 @@ import {
 
 import {
   createLocalFileSyncApprovalProvider,
+  SyncAuthorizationError,
 } from "./authorization.js";
 
 const MAX_ERROR_MESSAGE_LENGTH = 500;
 
 async function runSyncOnce(): Promise<void> {
+  const runMode = process.env.PA_SYNC_RUN_MODE;
+  if (runMode !== "manual" && runMode !== "scheduled") {
+    throw new SyncAuthorizationError(
+      "Sync approval rejected: PA_SYNC_RUN_MODE must be manual or scheduled",
+    );
+  }
   const pool =
     createDatabasePool();
 
@@ -21,6 +28,7 @@ async function runSyncOnce(): Promise<void> {
       await runMophSynchronization(
         pool,
         {
+          runMode,
           approvalProvider:
             createLocalFileSyncApprovalProvider(
               process.env.PA_SYNC_APPROVAL_FILE,

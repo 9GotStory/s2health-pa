@@ -180,6 +180,7 @@ function trustedApprovalForIntegration() {
   return {
     schemaVersion: 1 as const,
     approvalId: "pg18-integration-authorized",
+    runMode: "manual" as const,
     fiscalYear: 2569,
     currentQuarter: 4,
     provinceCode: "54",
@@ -840,6 +841,8 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  runMode: "manual",
+
                   approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
@@ -1414,6 +1417,8 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  runMode: "manual",
+
                   approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
@@ -1646,6 +1651,8 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  runMode: "manual",
+
                   approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
@@ -1820,6 +1827,8 @@ test(
 
                     now:
                       createDeterministicClock(),
+                  runMode: "manual",
+
                   approvalProvider: async () => trustedApprovalForIntegration(),
                   },
                 ),
@@ -1959,6 +1968,8 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  runMode: "manual",
+
                   approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
@@ -2091,6 +2102,7 @@ test(
           const baseApproval = {
             schemaVersion: 1 as const,
             approvalId: "pg18-fixture-rejected-case",
+            runMode: "manual" as const,
             issuedAt: "2026-09-30T10:00:00.000Z",
             fiscalYear: snapshot.fiscalYear,
             currentQuarter: snapshot.currentQuarter,
@@ -2155,12 +2167,14 @@ test(
               const dependencies = {
                 mophClient: fake.client,
                 now: createDeterministicClock(),
+                runMode: "manual" as const,
                 ...(scenario.approval === undefined
                   ? {}
                   : {
                       // This is an explicitly injected test authority; the
                       // untrusted approvedTarget property alone is ignored.
                       approvedTarget: scenario.approval,
+                      runMode: "manual" as const,
                       approvalProvider: async () => scenario.approval,
                     }),
               };

@@ -5,6 +5,12 @@ import type {
 } from "pg";
 
 import {
+  assertApprovedSyncTarget,
+  SyncAuthorizationError,
+  type SyncApprovalProvider,
+} from "./authorization.js";
+
+import {
   calculateKpiResults,
   type CalculatedKpiResult,
 } from "./calculation.js";
@@ -36,6 +42,7 @@ const KPI_RESULT_INSERT_BATCH_SIZE = 64;
 export interface SyncOrchestratorDependencies {
   readonly mophClient?: MophClient;
   readonly now?: () => Date;
+  readonly approvalProvider?: SyncApprovalProvider;
 }
 
 export interface SyncRunSummary {
@@ -774,6 +781,23 @@ export async function runMophSynchronization(
           client,
         );
 
+      // Authorization must be evaluated inside the advisory lock and
+      // before the first write. A caller-supplied approvedTarget field is
+      // intentionally ignored: only the configured approvalProvider is used.
+      if (dependencies?.approvalProvider === undefined) {
+        throw new SyncAuthorizationError(
+          "Sync approval rejected: trusted approval provider required",
+        );
+      }
+
+      const approvedAt = now();
+      const approval = assertApprovedSyncTarget(
+        await dependencies.approvalProvider(approvedAt),
+        snapshot,
+        districtAreaPrefix,
+        approvedAt,
+      );
+
       const expectedSourceCount =
         snapshot
           .physicalDefinitions
@@ -783,10 +807,13 @@ export async function runMophSynchronization(
         await createRunningSyncRun(
           client,
           snapshot,
-          freezeRunConfiguration(
-            snapshot,
-            districtAreaPrefix,
-          ),
+          {
+            ...freezeRunConfiguration(
+              snapshot,
+              districtAreaPrefix,
+            ),
+            approvalId: approval.approvalId,
+          },
           now(),
         );
 

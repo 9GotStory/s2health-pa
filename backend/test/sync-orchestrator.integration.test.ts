@@ -2084,11 +2084,14 @@ test(
       );
 
       await t.test(
-        "T006 RED: an unapproved FY/Q/district must not create a sync run",
+        "T007 GREEN: an unapproved FY/Q/district must not create a sync run",
         async (gateTests) => {
           const snapshot = await loadSnapshot(pool);
 
           const baseApproval = {
+            schemaVersion: 1 as const,
+            approvalId: "pg18-fixture-rejected-case",
+            issuedAt: "2026-09-30T10:00:00.000Z",
             fiscalYear: snapshot.fiscalYear,
             currentQuarter: snapshot.currentQuarter,
             provinceCode: snapshot.provinceCode,
@@ -2154,7 +2157,12 @@ test(
                 now: createDeterministicClock(),
                 ...(scenario.approval === undefined
                   ? {}
-                  : { approvedTarget: scenario.approval }),
+                  : {
+                      // This is an explicitly injected test authority; the
+                      // untrusted approvedTarget property alone is ignored.
+                      approvedTarget: scenario.approval,
+                      approvalProvider: async () => scenario.approval,
+                    }),
               };
 
               let capturedError: unknown;

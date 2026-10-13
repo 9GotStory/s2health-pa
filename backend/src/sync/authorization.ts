@@ -16,6 +16,7 @@ export class SyncAuthorizationError extends Error {
 export interface SyncTargetApproval {
   readonly schemaVersion: 1;
   readonly approvalId: string;
+  readonly runMode: "manual" | "scheduled";
   readonly fiscalYear: number;
   readonly currentQuarter: number;
   readonly provinceCode: string;
@@ -61,10 +62,11 @@ export function assertApprovedSyncTarget(
   snapshot: SyncConfigSnapshot,
   districtAreaPrefix: string,
   now: Date,
+  runMode: "manual" | "scheduled",
 ): SyncTargetApproval {
   const obj = requireObject(input);
   const allowed = [
-    "schemaVersion", "approvalId", "fiscalYear", "currentQuarter",
+    "schemaVersion", "approvalId", "runMode", "fiscalYear", "currentQuarter",
     "provinceCode", "districtAreaPrefix", "issuedAt", "expiresAt",
   ];
   if (Object.keys(obj).length !== allowed.length ||
@@ -75,6 +77,9 @@ export function assertApprovedSyncTarget(
       typeof obj.approvalId !== "string" ||
       !APPROVAL_ID.test(obj.approvalId)) {
     return refuse("invalid policy version or approval ID");
+  }
+  if (obj.runMode !== runMode) {
+    return refuse("run mode does not match approved purpose");
   }
   if (!Number.isInteger(obj.fiscalYear) ||
       !Number.isInteger(obj.currentQuarter) ||
@@ -94,6 +99,19 @@ export function assertApprovedSyncTarget(
   }
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
     return refuse("invalid verification clock");
+  }
+  // A timer must never silently resync a historical year. Manually
+  // authorized backfills remain a distinct, explicitly labeled purpose.
+  const bangkok = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(now);
+  const year = Number(bangkok.find((p) => p.type === "year")?.value);
+  const month = Number(bangkok.find((p) => p.type === "month")?.value);
+  const currentThaiFiscalYear = year + 543 + (month >= 10 ? 1 : 0);
+  if (runMode === "scheduled" && obj.fiscalYear !== currentThaiFiscalYear) {
+    return refuse("scheduled runs cannot target a historical or future fiscal year");
   }
   const issued = parseDate(obj.issuedAt, "issuedAt");
   const expires = parseDate(obj.expiresAt, "expiresAt");
@@ -124,8 +142,10 @@ export function createLocalFileSyncApprovalProvider(
     let parent = dirname(filePath);
     while (true) {
       const stat = await lstat(parent).catch(() => refuse("unavailable parent directory"));
+      const uid = process.getuid?.();
       if (!stat.isDirectory() || stat.isSymbolicLink() ||
-          (stat.mode & 0o022) !== 0) {
+          (stat.mode & 0o022) !== 0 ||
+          (uid !== undefined && stat.uid === uid && (stat.mode & 0o200) !== 0)) {
         return refuse("untrusted approval parent directory");
       }
       const next = dirname(parent);

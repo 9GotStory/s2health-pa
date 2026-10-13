@@ -91,6 +91,9 @@ export function assertApprovedSyncTarget(
       !/^\d{4}$/.test(obj.districtAreaPrefix)) {
     return refuse("invalid area codes");
   }
+  if (!districtAreaPrefix.startsWith(snapshot.provinceCode)) {
+    return refuse("configured district does not belong to the configured province");
+  }
   if (obj.fiscalYear !== snapshot.fiscalYear ||
       obj.currentQuarter !== snapshot.currentQuarter ||
       obj.provinceCode !== snapshot.provinceCode ||
@@ -110,8 +113,15 @@ export function assertApprovedSyncTarget(
   const year = Number(bangkok.find((p) => p.type === "year")?.value);
   const month = Number(bangkok.find((p) => p.type === "month")?.value);
   const currentThaiFiscalYear = year + 543 + (month >= 10 ? 1 : 0);
-  if (runMode === "scheduled" && obj.fiscalYear !== currentThaiFiscalYear) {
-    return refuse("scheduled runs cannot target a historical or future fiscal year");
+  if (runMode === "scheduled") {
+    if (obj.fiscalYear !== currentThaiFiscalYear) {
+      return refuse("scheduled runs cannot target a historical or future fiscal year");
+    }
+    const currentFiscalQuarter =
+      month >= 10 ? 1 : month <= 3 ? 2 : month <= 6 ? 3 : 4;
+    if (obj.currentQuarter !== currentFiscalQuarter) {
+      return refuse("scheduled runs cannot target a past or future fiscal quarter");
+    }
   }
   const issued = parseDate(obj.issuedAt, "issuedAt");
   const expires = parseDate(obj.expiresAt, "expiresAt");

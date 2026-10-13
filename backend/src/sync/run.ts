@@ -6,6 +6,10 @@ import {
   runMophSynchronization,
 } from "./orchestrator.js";
 
+import {
+  createLocalFileSyncApprovalProvider,
+} from "./authorization.js";
+
 const MAX_ERROR_MESSAGE_LENGTH = 500;
 
 async function runSyncOnce(): Promise<void> {
@@ -16,6 +20,12 @@ async function runSyncOnce(): Promise<void> {
     const summary =
       await runMophSynchronization(
         pool,
+        {
+          approvalProvider:
+            createLocalFileSyncApprovalProvider(
+              process.env.PA_SYNC_APPROVAL_FILE,
+            ),
+        },
       );
 
     console.log(

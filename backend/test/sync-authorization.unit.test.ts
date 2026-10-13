@@ -137,3 +137,58 @@ test("T007: a current FY2570 scheduled approval is allowed under the same guard"
   assert.equal(result.runMode, "scheduled");
   assert.equal(result.fiscalYear, 2570);
 });
+
+test("T007: scheduled run rejects next quarter even within current FY", () => {
+  assert.throws(
+    () => assertApprovedSyncTarget(
+      { ...valid, runMode: "scheduled", currentQuarter: 2 },
+      { ...snapshot, currentQuarter: 2 } as SyncConfigSnapshot,
+      "5406",
+      now,
+      "scheduled",
+    ),
+    /scheduled runs cannot target a past or future fiscal quarter/,
+  );
+});
+
+test("T007: approvals cannot combine province 54 with district 5506", () => {
+  assert.throws(
+    () => assertApprovedSyncTarget(
+      { ...valid, districtAreaPrefix: "5506" },
+      snapshot,
+      "5506",
+      now,
+      "manual",
+    ),
+    /configured district does not belong to the configured province/,
+  );
+});
+
+test("T007: fiscal quarter calculation respects Bangkok Jan and Oct rollover", () => {
+  const october = assertApprovedSyncTarget(
+    { ...valid, runMode: "scheduled", fiscalYear: 2570, currentQuarter: 1 },
+    { ...snapshot, fiscalYear: 2570, currentQuarter: 1 } as SyncConfigSnapshot,
+    "5406",
+    now,
+    "scheduled",
+  );
+  assert.equal(october.currentQuarter, 1);
+
+  const january = new Date("2027-01-01T01:00:00.000Z");
+  const januaryPolicy = {
+    ...valid,
+    runMode: "scheduled",
+    fiscalYear: 2570,
+    currentQuarter: 2,
+    issuedAt: "2026-12-31T10:00:00.000Z",
+    expiresAt: "2027-01-02T10:00:00.000Z",
+  };
+  const accepted = assertApprovedSyncTarget(
+    januaryPolicy,
+    { ...snapshot, fiscalYear: 2570, currentQuarter: 2 } as SyncConfigSnapshot,
+    "5406",
+    january,
+    "scheduled",
+  );
+  assert.equal(accepted.currentQuarter, 2);
+});

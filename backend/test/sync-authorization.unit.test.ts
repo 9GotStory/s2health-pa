@@ -116,3 +116,24 @@ test("T007: a manual backfill remains possible only with explicit manual authori
   );
   assert.equal(result.runMode, "manual");
 });
+
+test("T007: a current FY2570 scheduled approval is allowed under the same guard", () => {
+  const active = {
+    ...valid,
+    runMode: "scheduled",
+    fiscalYear: 2570,
+    currentQuarter: 1,
+    approvalId: "current-fy-scheduled-policy",
+  };
+  const activeSnapshot = {
+    ...snapshot,
+    fiscalYear: 2570,
+    currentQuarter: 1,
+  } as SyncConfigSnapshot;
+
+  const result = assertApprovedSyncTarget(
+    active, activeSnapshot, "5406", now, "scheduled",
+  );
+  assert.equal(result.runMode, "scheduled");
+  assert.equal(result.fiscalYear, 2570);
+});

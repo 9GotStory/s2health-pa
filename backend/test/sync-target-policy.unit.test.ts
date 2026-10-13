@@ -25,6 +25,7 @@ import type {
 interface ApprovedSyncTarget {
   readonly schemaVersion: 1;
   readonly approvalId: string;
+  readonly runMode: "manual" | "scheduled";
   readonly issuedAt: string;
   readonly fiscalYear: number;
   readonly currentQuarter: number;
@@ -39,6 +40,7 @@ const fixedTime = new Date("2026-10-12T10:00:00.000Z");
 const approved: ApprovedSyncTarget = Object.freeze({
   schemaVersion: 1,
   approvalId: "t006-test-authority",
+  runMode: "manual",
   issuedAt: "2026-10-11T10:00:00.000Z",
   fiscalYear: 2569,
   currentQuarter: 4,
@@ -212,6 +214,7 @@ async function observeAttempt(
 ): Promise<unknown> {
   const dependencies = {
     mophClient: fakeMophClient(probe.state),
+    runMode: "manual" as const,
     now: () => new Date(fixedTime),
     ...(target === undefined ? {} : { approvedTarget: target }),
   };
@@ -302,6 +305,7 @@ test("T007: an explicitly injected test approval provider allows a matching targ
     await runMophSynchronization(probe.pool, {
       now: () => new Date(fixedTime),
       mophClient: fakeMophClient(probe.state),
+      runMode: "manual",
       approvalProvider: async () => { seen += 1; return approved; },
     });
   } catch (caught) {

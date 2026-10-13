@@ -43,6 +43,7 @@ export interface SyncOrchestratorDependencies {
   readonly mophClient?: MophClient;
   readonly now?: () => Date;
   readonly approvalProvider?: SyncApprovalProvider;
+  readonly runMode?: "manual" | "scheduled";
 }
 
 export interface SyncRunSummary {
@@ -784,6 +785,12 @@ export async function runMophSynchronization(
       // Authorization must be evaluated inside the advisory lock and
       // before the first write. A caller-supplied approvedTarget field is
       // intentionally ignored: only the configured approvalProvider is used.
+      if (dependencies?.runMode !== "manual" &&
+          dependencies?.runMode !== "scheduled") {
+        throw new SyncAuthorizationError(
+          "Sync approval rejected: explicit run mode required",
+        );
+      }
       if (dependencies?.approvalProvider === undefined) {
         throw new SyncAuthorizationError(
           "Sync approval rejected: trusted approval provider required",
@@ -796,6 +803,7 @@ export async function runMophSynchronization(
         snapshot,
         districtAreaPrefix,
         approvedAt,
+        dependencies.runMode,
       );
 
       const expectedSourceCount =
@@ -813,6 +821,7 @@ export async function runMophSynchronization(
               districtAreaPrefix,
             ),
             approvalId: approval.approvalId,
+            runMode: approval.runMode,
           },
           now(),
         );

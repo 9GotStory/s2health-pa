@@ -9,7 +9,7 @@ PG_IMAGE=docker.io/library/postgres@sha256:0377e72c5289ed2f98cf61b1a9c2db9eb9d30
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 die() { echo "T007_GREENCHECK=BLOCKED: $*" >&2; exit 2; }
 
-for command in git podman node npm timeout od grep sed tr mktemp cut seq; do
+for command in git podman node npm timeout od grep sed tr mktemp cut seq tail; do
   command -v "$command" >/dev/null 2>&1 || die "missing tool $command"
 done
 
@@ -29,7 +29,7 @@ esac
 
 while IFS= read -r changed; do
   case "$changed" in
-    backend/test/*.ts|backend/test/t007-isolated-pg18-green.sh) ;;
+    backend/src/sync/authorization.ts|backend/src/sync/orchestrator.ts|backend/src/sync/run.ts|backend/test/sync-authorization.unit.test.ts|backend/test/sync-orchestrator.integration.test.ts|backend/test/sync-target-policy.unit.test.ts|backend/test/t006-isolated-pg18-red.sh|backend/test/t007-isolated-pg18-green.sh) ;;
     *) die "out of T007 scope: $changed" ;;
   esac
 done < <(git -C "$ROOT" diff --name-only "$BASE_SHA"...HEAD)

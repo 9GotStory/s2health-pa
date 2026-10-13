@@ -174,6 +174,21 @@ async function countKpiResults(
   ).count;
 }
 
+// Test-only approval provenance fixture. Production must use the protected
+// operator-file provider; never convert this fixture into a runtime bypass.
+function trustedApprovalForIntegration() {
+  return {
+    schemaVersion: 1 as const,
+    approvalId: "pg18-integration-authorized",
+    fiscalYear: 2569,
+    currentQuarter: 4,
+    provinceCode: "54",
+    districtAreaPrefix: "5406",
+    issuedAt: "2026-09-30T10:00:00.000Z",
+    expiresAt: "2026-10-13T10:00:00.000Z",
+  };
+}
+
 function createDeterministicClock():
   () => Date {
   let next =
@@ -825,6 +840,7 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
 
@@ -1398,6 +1414,7 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
 
@@ -1629,6 +1646,7 @@ test(
 
                   now:
                     createDeterministicClock(),
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                 },
               ),
 
@@ -1802,6 +1820,7 @@ test(
 
                     now:
                       createDeterministicClock(),
+                  approvalProvider: async () => trustedApprovalForIntegration(),
                   },
                 ),
 
@@ -1940,6 +1959,7 @@ test(
 
                 now:
                   createDeterministicClock(),
+                  approvalProvider: async () => trustedApprovalForIntegration(),
               },
             );
 

@@ -18,9 +18,10 @@ import type {
  * writing SQL statement. No real MOPH request, database, timer, or network is
  * ever used by this unit test.
  *
- * The production orchestrator does NOT yet read approvedTarget: the negative
- * tests must therefore FAIL (RED) because INSERT is reached without consent.
- * The future T007 change must make them pass by rejecting before that INSERT.
+ * The production orchestrator deliberately ignores an untrusted caller
+ * approvedTarget field. In T007 GREEN, missing or spoofed approval must
+ * be rejected before the first INSERT, and a test-only injected verified
+ * provider can reach the old insertion boundary.
  */
 interface ApprovedSyncTarget {
   readonly schemaVersion: 1;

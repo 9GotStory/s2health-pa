@@ -35,7 +35,7 @@ while IFS= read -r changed; do
 done < <(git -C "$ROOT" diff --name-only "$BASE_SHA"...HEAD)
 case "$(node -v)" in
   v24.*) ;;
-  *) die "Node 24 requigreen" ;;
+  *) die "Node 24 required" ;;
 esac
 
 echo "===== T007 ISOLATED PG18 EVIDENCE ====="
@@ -100,20 +100,40 @@ case "$port" in
   ''|*[!0-9]*) die "invalid mapped port" ;;
 esac
 
+# The official PostgreSQL Docker entrypoint temporarily starts a
+# UNIX-socket-only postmaster for initdb, then deliberately shuts it down
+# before starting the final TCP-listening server. A socket-based pg_isready
+# returns success too early during that temporary phase.
+# Probe TCP inside this ephemeral container; it only becomes available
+# after the final PostgreSQL server starts.
+echo "PG18_READINESS=WAITING_FOR_FINAL_TCP_SERVER"
 ready=0
 for _ in $(seq 1 90); do
-  if podman exec "$name" pg_isready -q -U postgres -d "$dbname"; then
+  if podman exec "$name" pg_isready -h 127.0.0.1 -q -U postgres -d "$dbname" 2>/dev/null; then
     ready=1
     break
   fi
+  if ! podman container exists "$name"; then
+    echo "PG18_STARTUP=CONTAINER_EXITED_BEFORE_TCP_READY"
+    die "temporary PG18 exited during initialization; no integration tests executed"
+  fi
   sleep 1
 done
-test "$ready" = 1 || die "temporary PG18 not ready"
-version="$(podman exec "$name" psql -U postgres -d "$dbname" -Atqc 'SHOW server_version_num')"
+if test "$ready" != 1; then
+  echo "PG18_STARTUP=TCP_READINESS_TIMEOUT"
+  die "temporary PG18 final TCP server not ready; no integration tests executed"
+fi
+
+# Only inspect the locally isolated container (no host PostgreSQL).
+# Query over the local socket is now safe because the final TCP server
+# is confirmed reachable; credentials never appear in the output.
+version="$(podman exec "$name" psql -U postgres -d "$dbname" -Atqc 'SHOW server_version_num')" ||
+  die "temporary PG18 version probe failed after TCP readiness"
 case "$version" in
   18????) ;;
   *) die "not PostgreSQL 18: $version" ;;
 esac
+echo "PG18_FINAL_TCP_READY=PASS"
 echo "POSTGRES_MAJOR=18"
 echo "DB_NAME_SUFFIX=_test"
 
